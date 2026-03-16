@@ -55,7 +55,7 @@ class Grid:
         
         return errors
     
-class Card:
+class BaseCard:
     def __init__(self, value=1, x=0,y=0):
         self.flipped = False
         self.value = value
@@ -65,6 +65,52 @@ class Card:
     
     def flip(self):
         self.flipped = not self.flipped
+
+class HelperCard:
+    def __init__(self, n, d):
+        self.name = n
+        self.description = d
+    
+    def play(self, game_state):
+        pass
+
+class Player:
+    def __init__(self,deck=[],hand=[]):
+        self.deck = deck
+        self.hand = hand
+    
+    def get_input(self):
+        pass
+
+class Demon(Player):
+    def __init__(self, deck=[], hand=[]):
+        super().__init__(deck,hand)
+        pass
+
+    def get_input(self): # Method Overriding!
+        # maybe decide?
+        pass
+
+class Scale:
+    def __init__(self, ts=0):
+        self.player_score = 0
+        self.demon_score = 0
+    
+        self.threshold = ts
+
+    def get_delta_score(self):
+        return self.player_score - self.demon_score
+    
+    def is_win(self):
+        pass
+
+class Game:
+    def __init__(self):
+        self.game_state:string
+        self.turn:string
+    
+    def change_scene(self):
+        pass
 
 if __name__ == "__main__":
     import pygame
@@ -88,9 +134,11 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+        
         # Now, blit the card things.
         for y in range(4):
             for x in range(4):
                 card_surface.blit(card, (x*20 + 10,y*20 +10))
+        
         screen.blit(card_surface)
         pygame.display.flip()

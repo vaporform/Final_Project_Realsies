@@ -27,13 +27,16 @@ font = pygame.font.Font(None, 16)        # load default font
 cursor_x = 0
 cursor_y = 0
 
-game_state = { "turn":"player",
-"scale":0,
-"player_score":0,
-"demon_score":0,
+game_state = { 
+    "turn":"player",
+    "scale":0,
+    "player_score":0,
+    "demon_score":0,
 }
-GRID_SIZE = 5
+GRID_SIZE = 4
 grid = Grid(GRID_SIZE, [ Card(random.randint(1,3),i%GRID_SIZE, i//GRID_SIZE) for i in range(GRID_SIZE**2)])
+
+valid = False
 
 while running:
     for event in pygame.event.get():
@@ -87,7 +90,7 @@ while running:
     screen.fill((255, 255, 255))          # clear screen each frame
     card_surface.fill((255,255,255))
 
-    c_text = font.render(f"{cursor_x,cursor_y}\nScale: {game_state['scale']}", True, (0,0,0)) # create text surface
+    c_text = font.render(f"{cursor_x,cursor_y}\nScale: {game_state['scale'], game_state['turn']}", True, (0,0,0)) # create text surface
     # Now, blit the card things.
     
     for y in range(GRID_SIZE):
