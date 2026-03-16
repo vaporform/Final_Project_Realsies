@@ -70,6 +70,33 @@ class Grid:
                     result.append(card)
         return result
 
+    def select_attempt(self,x,y):
+        try:
+            selected = self.get_item(x,y)
+            if not selected.flipped:
+                valid_cards = [] #selected,r,c, 
+                valid_cards.append(selected)
+
+                selected.flip()
+
+                # now check for combos
+                row_coords, col_coords = self.get_related_coords(x,y)
+                row_cards,_  = self.get_tiles_from_coords(row_coords)
+                col_cards,_ = self.get_tiles_from_coords(col_coords)
+
+                if sum([int(b.flipped) for b in col_cards]) == self.size: #OK!
+                    valid_cards.append(col_cards)
+
+                if sum([int(b.flipped) for b in row_cards]) == self.size: #OK!
+                    valid_cards.append(row_cards)
+                
+                return valid_cards
+
+        except Exception as e:
+            print("ERROR!",e)
+            return None
+
+
 class Scale:
     def __init__(self, ts=0):
         self.player_score = 0
@@ -81,14 +108,6 @@ class Scale:
         return self.player_score - self.demon_score
     
     def is_win(self):
-        pass
-
-class Game:
-    def __init__(self):
-        self.game_state:string
-        self.turn:string
-    
-    def change_scene(self):
         pass
 
 if __name__ == "__main__":
