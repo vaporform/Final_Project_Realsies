@@ -55,41 +55,20 @@ class Grid:
         
         return errors
     
-class BaseCard:
-    def __init__(self, value=1, x=0,y=0):
-        self.flipped = False
-        self.value = value
-        # Additional info
-        self.x = x
-        self.y = y
-    
-    def flip(self):
-        self.flipped = not self.flipped
+    def get_coords_from_tiles(self, obj):
+        for y, array_y in enumerate(self.grid):
+            for x, card in enumerate(array_y):
+                if obj == card:
+                    return x,y
+        return -1,-1
 
-class HelperCard:
-    def __init__(self, n, d):
-        self.name = n
-        self.description = d
-    
-    def play(self, game_state):
-        pass
-
-class Player:
-    def __init__(self,deck=[],hand=[]):
-        self.deck = deck
-        self.hand = hand
-    
-    def get_input(self):
-        pass
-
-class Demon(Player):
-    def __init__(self, deck=[], hand=[]):
-        super().__init__(deck,hand)
-        pass
-
-    def get_input(self): # Method Overriding!
-        # maybe decide?
-        pass
+    def get_filtered_cards(self, function):
+        result = []
+        for r in self.grid:
+            for card in r:
+                if function(card):
+                    result.append(card)
+        return result
 
 class Scale:
     def __init__(self, ts=0):
