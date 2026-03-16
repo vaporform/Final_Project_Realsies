@@ -6,12 +6,16 @@ class Player:
         self.deck = deck
         self.hand = hand
         self.points = 0
+        self.cursor_x = 0
+        self.cursor_y = 0
 
     def get_input(self):
         pass
 
 class Demon(Player):
-    def __init__(self, deck=[], hand=[]):
+    def __init__(self,name="None",description="None", deck=[], hand=[]):
+        self.name = name
+        self.description = description
         self.aggression = 0.0
         self.effect_pool = []
         super().__init__(deck,hand)
