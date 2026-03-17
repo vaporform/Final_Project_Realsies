@@ -34,3 +34,4 @@ class Scene:
     def draw(self, screen:pygame.Surface):
         '''Called for rendering the scene.'''
         pass
+    

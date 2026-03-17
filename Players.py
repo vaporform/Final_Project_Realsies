@@ -12,13 +12,26 @@ class Player:
             self.hand = []
         else:
             self.hand = hand
-            
+        
+        self.session_deck = self.deck
+        self.session_hand = self.hand
+
         self.points = 0
         self.cursor_x = 0
         self.cursor_y = 0
 
-    def get_input(self):
+    def get_input(self,events):
+        
         pass
+    
+    def choose_and_remove(self, amount):
+        arr = []
+        for i in range(amount):
+            if len(self.session_deck) != 0: # No more left...
+                c = random.choice(self.session_deck)
+                self.session_deck.remove(c)
+                arr.append(c)
+        return arr
 
 class Demon(Player):
     def __init__(self,name="None",description="None", deck=[], hand=[]):

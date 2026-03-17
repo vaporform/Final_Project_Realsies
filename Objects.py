@@ -1,3 +1,7 @@
+from Cards import BaseCard, HelperCard
+import random
+import pygame
+
 class Grid:
     def __init__(self, size,thing=None):
         self.size = size
@@ -82,6 +86,16 @@ class Grid:
                 count += 1
         return count
 
+    @staticmethod
+    def flatten_list(nested_list): # stupid, but yeah
+        arr = []
+        for i in nested_list:
+            if isinstance(i,list):
+                arr.extend(i)
+            else:
+                arr.append(i)
+        return arr
+
     def get_all_coords(self):
         arr = []
         for y, array_y in enumerate(self.grid):
@@ -125,7 +139,19 @@ class Grid:
         except Exception as e:
             print("ERROR!",e)
             return [], 0
+            
+    def replace_cards(self,raw_cards,player):
+        s = Grid.count_nested_items(raw_cards)
+        new_cards = player.choose_and_remove(s)
+        
+        if len(new_cards) != s: # it's missing something...
+            new_cards.extend(
+                [BaseCard(value=random.randint(-3,-1),owner="spooky") for _ in range(s-len(new_cards))]
+            )
 
+        coords = self.get_coords_from_tiles(raw_cards)
+        print(len(raw_cards),new_cards,coords)
+        self.set_tiles_from_coords(coords,new_cards)
 
 class Scale:
     def __init__(self, ts=0):
@@ -137,8 +163,39 @@ class Scale:
     def get_delta_score(self):
         return self.player_score - self.demon_score
     
-    def is_win(self):
-        pass
+    def who_won(self): # the delta is player-centric.
+        if self.get_delta_score() >= self.threshold:
+            return "player"
+        elif abs(self.get_delta_score()) >= self.threshold:
+            return "demon"
+        else:
+            return None
+
+    def evaluate_points(self,raw_cards,player):
+        # might be the stupidest way to do ts
+        for i in raw_cards:
+            if isinstance(i,BaseCard):
+                if player.lower() == "player":
+                    self.player_score += i.value
+                elif player.lower() == "demon":
+                    self.demon_score += i.value
+            # or maybe it's actually an array of cards!
+            else:
+                if len(i) > 0:
+                    s = 0
+                    for individual_card in i:
+                        if player.lower() == "player":
+                            self.player_score += individual_card.value
+                        elif player.lower() == "demon":
+                            self.demon_score += individual_card.value
+
+                        s += individual_card.value
+
+                    # Bonus!
+                    if player.lower() == "player":
+                        self.player_score += 5
+                    elif player.lower() == "demon":
+                        self.demon_score += 5
 
 if __name__ == "__main__":
     import pygame

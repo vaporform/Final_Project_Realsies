@@ -13,7 +13,7 @@ class TitleScreen(Scene):
         Move things, check timers.
         '''
         self.countdown += dt
-        if self.countdown >= 10:
+        if self.countdown >= 1:
             print("Aye aye!")
             return GameSession()
         return None

@@ -19,6 +19,8 @@ class BaseCard:
         
         return [BaseCard(value=i,owner=owner) for i in deck]
 
+############################################
+
 class HelperCard:
     def __init__(self, n, d):
         self.name = n
