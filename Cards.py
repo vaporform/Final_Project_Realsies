@@ -12,8 +12,11 @@ class BaseCard:
         self.flipped = not self.flipped
     
     @staticmethod
-    def deck_creator(ones, twos, threes, owner):
-        deck = [1]*ones + [2]*twos + [3]*threes
+    def deck_creator(rates, values, owner):
+        deck = []
+        for index, r in enumerate(rates):
+            deck.extend([values[index]] * r)
+        
         return [BaseCard(value=i,owner=owner) for i in deck]
 
 class HelperCard:

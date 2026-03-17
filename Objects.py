@@ -1,9 +1,9 @@
 class Grid:
-    def __init__(self, size,thing=1):
+    def __init__(self, size,thing=None):
         self.size = size
         self.grid = self.create_grid(self.size,thing)
     
-    def create_grid(self,size,thing=1):       
+    def create_grid(self,size,thing=None):       
         temp_grid = []
         # create cards.
         for i in range(size):
@@ -55,12 +55,39 @@ class Grid:
         
         return errors
     
-    def get_coords_from_tiles(self, obj):
+    def get_coords_from_object(self, obj):
         for y, array_y in enumerate(self.grid):
             for x, card in enumerate(array_y):
                 if obj == card:
                     return x,y
         return -1,-1
+
+    def get_coords_from_tiles(self, objs:list):
+        # linear search...
+        arr = []
+        for i in objs:
+            arr.append(self.get_coords_from_object(i))
+        
+        return arr
+        
+    @staticmethod
+    def count_nested_items(nested_list):
+        count = 0
+        for item in nested_list:
+            if isinstance(item, list):
+                # If it's a list, call the function recursively
+                count += Grid.count_nested_items(item)
+            else:
+                # If it's a single item, count it
+                count += 1
+        return count
+
+    def get_all_coords(self):
+        arr = []
+        for y, array_y in enumerate(self.grid):
+            for x, card in enumerate(array_y):
+                arr.append([x,y])
+        return arr
 
     def get_filtered_cards(self, function):
         result = []
@@ -73,28 +100,31 @@ class Grid:
     def select_attempt(self,x,y):
         try:
             selected = self.get_item(x,y)
-            if not selected.flipped:
-                valid_cards = [] #selected,r,c, 
-                valid_cards.append(selected)
+            if selected.flipped: return [], 0
 
-                selected.flip()
+            valid_cards = [selected,[],[]] #selected, r, c
+            combos = 0
 
-                # now check for combos
-                row_coords, col_coords = self.get_related_coords(x,y)
-                row_cards,_  = self.get_tiles_from_coords(row_coords)
-                col_cards,_ = self.get_tiles_from_coords(col_coords)
+            selected.flip()
 
-                if sum([int(b.flipped) for b in col_cards]) == self.size: #OK!
-                    valid_cards.append(col_cards)
+            # now check for combos
+            row_coords, col_coords = self.get_related_coords(x,y)
+            row_cards,_  = self.get_tiles_from_coords(row_coords)
+            col_cards,_ = self.get_tiles_from_coords(col_coords)
 
-                if sum([int(b.flipped) for b in row_cards]) == self.size: #OK!
-                    valid_cards.append(row_cards)
-                
-                return valid_cards
+            if sum([int(b.flipped) for b in row_cards]) == self.size: #OK!
+                valid_cards[2] = row_cards
+                combos += 1
+            
+            if sum([int(b.flipped) for b in col_cards]) == self.size: #OK!
+                valid_cards[1] = col_cards
+                combos += 1
+
+            return valid_cards, combos
 
         except Exception as e:
             print("ERROR!",e)
-            return None
+            return [], 0
 
 
 class Scale:

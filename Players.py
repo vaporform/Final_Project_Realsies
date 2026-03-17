@@ -2,9 +2,17 @@ from Objects import Grid
 import random
 
 class Player:
-    def __init__(self,deck=[],hand=[]):
-        self.deck = deck
-        self.hand = hand
+    def __init__(self,deck=None,hand=None):
+        if deck == None:
+            self.deck = []
+        else:
+            self.deck = deck
+
+        if hand == None:
+            self.hand = []
+        else:
+            self.hand = hand
+            
         self.points = 0
         self.cursor_x = 0
         self.cursor_y = 0
