@@ -1,7 +1,7 @@
 class BaseCard:
     def __init__(self, value=1, x=0,y=0,owner="None"):
         self.flipped = False
-        self.effects = [] # stuff to store effects :P
+        self.effects = {} # stuff to store effects :P
         self.value = value
         # Additional info
         self.x = x
@@ -19,3 +19,9 @@ class BaseCard:
             deck.extend([values[index]] * r)
         
         return [BaseCard(value=i,owner=owner) for i in deck]
+    
+    def __str__(self):
+        return f"{self.value}"
+
+    def __repr__(self):
+        return f"{self.value}"

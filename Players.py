@@ -30,8 +30,8 @@ class BasePlayer:
 
 
 class Player(BasePlayer):
-    def __init__(self, deck, hand):
-        self.helper_cards = []
+    def __init__(self, deck, hand, helper_cards):
+        self.helper_cards = helper_cards
         super().__init__(deck,hand)
 
     def get_pos_in_grid(self,events,grid_size):

@@ -17,7 +17,15 @@ class GameSession(Scene):
         self.grid = Grid(GRID_SIZE)
 
         normal_val= [1,2,3]
-        self.player = Player(hand=[],deck=BaseCard.deck_creator([18,4,2],normal_val,"player"))
+        helpers = [
+            Peek(), 
+        ]
+
+        self.player = Player(deck=BaseCard.deck_creator([18,4,2],normal_val,"player"),
+                            helper_cards=helpers,
+                            hand=[]
+                            )
+
         self.demons = [
             Demon("Imp","An annoying low-level demon",BaseCard.deck_creator([16,6,2],normal_val,"demon"))
         ]
@@ -119,6 +127,7 @@ class GameSession(Scene):
                     if event.key == pygame.K_SPACE:
                         # try to select the BaseCard
                         valid_cards, combos = self.grid.select_attempt(self.player.cursor_x,self.player.cursor_y)
+                        print("valid: ",valid_cards)
                         if len(valid_cards) != 0:
                             # OK! Pend the data to evaluate_points
                             self.data_to_evaluate = {
@@ -134,13 +143,12 @@ class GameSession(Scene):
                         if len(self.player.hand) != 0 and self.player.hand[0].verify(self.game_state):
                             card = self.player.hand.pop(0)
                             card.play(self.game_state)
-                            self.helpers_to_eval.append(card)
-                            
+                            self.helpers_to_eval.append(card)            
         return self
     
     def evaluate(self):
         raw = self.data_to_evaluate
-        print(f"evaluating {raw['player']} {raw['valid_cards']}")
+        #print(f"evaluating {raw['player']} {raw['valid_cards']}")
         if self.data_to_evaluate == None:
             print("NOTHING TO EVALUATE!")
         else:
@@ -148,9 +156,6 @@ class GameSession(Scene):
             target = self.demons[0]
             if raw["player"] == "player":
                 target = self.player
-
-            if raw["combos"] > 0:
-                self.grid.replace_cards(Grid.flatten_list(raw['valid_cards']),target)
 
             # if not win..
             if self.scale.who_won() == None:
@@ -163,11 +168,26 @@ class GameSession(Scene):
 
             # Now, CLEAN!
             for helper in self.helpers_to_eval:
-                print(f"Cleaning: {helper.name}")
-                helper.clean_up(self.game_state)
+                try:
+                    print(f"Cleaning: {helper.name}")
+                    helper.clean_up(self.game_state)
+                except Exception as e:
+                    print(f"ERROR! {helper}",e,)
             
+            if raw["combos"] > 0:
+                self.grid.replace_cards(Grid.flatten_list(raw['valid_cards'][1:]),target)
+
             self.data_to_evaluate = None
-            self.helpers_to_eval = []
+
+            # Now, I think I could make a "timer" for it...
+            helpers_copy = self.helpers_to_eval.copy()
+            for i in helpers_copy:
+                if i.remove_check(self.game_state):
+                    self.helpers_to_eval.remove(i)
+
+            helpers_copy = [] # just clear...
+
+            #self.helpers_to_eval = []
             
     def update(self, dt):
         '''
@@ -207,7 +227,7 @@ class GameSession(Scene):
         for i in self.player.hand:
             hand_text += f"{i} "
         h_text = font.render(hand_text, True, (0,0,0))
-        e_text = font.render(f"effects: {','.join(self.grid.get_item(cursor_x,cursor_y).effects)}"
+        e_text = font.render(f"effects: {','.join(self.grid.get_item(cursor_x,cursor_y).effects)}\neval:{self.helpers_to_eval}"
         , True, (0,0,0))
         # Now, blit the BaseCard things.
         for y in range(self.grid.size):
