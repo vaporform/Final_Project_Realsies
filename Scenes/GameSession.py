@@ -1,7 +1,9 @@
 from .BaseScene import Scene
 from Objects import Grid, Scale
-from Cards import BaseCard, HelperCard
-from Players import Demon, Player
+from BaseCard import *
+from HelperCard import *
+
+from Players import *
 
 import random
 import pygame
@@ -15,7 +17,7 @@ class GameSession(Scene):
         self.grid = Grid(GRID_SIZE)
 
         normal_val= [1,2,3]
-        self.player = Player(deck=BaseCard.deck_creator([12,8,4],normal_val,"player"))
+        self.player = Player(hand=[],deck=BaseCard.deck_creator([18,4,2],normal_val,"player"))
         self.demons = [
             Demon("Imp","An annoying low-level demon",BaseCard.deck_creator([16,6,2],normal_val,"demon"))
         ]
@@ -47,7 +49,11 @@ class GameSession(Scene):
             "demon":self.demons[0],
             "scale":self.scale
         }
-    
+
+        # Queue for executing card stuff ig..
+
+        self.helpers_to_eval = []
+        
     def palette_swap(self,surf, old_c, new_c):
         img_copy = pygame.Surface(surf.get_size())
         img_copy.fill(new_c)
@@ -78,7 +84,7 @@ class GameSession(Scene):
         For loading assets or heavy stuff, it is advisable to load via __init__ instead.
         '''
         # Now, pick cards from it equally.
-        amount = self.grid.size/2
+        amount = (self.grid.size**2)//2
         select_cards = self.player.choose_and_remove(amount) + self.demons[0].choose_and_remove(amount)
         
         random.shuffle(select_cards)
@@ -91,6 +97,8 @@ class GameSession(Scene):
         self.grid.set_tiles_from_coords(
             grid_coords,select_cards
         )
+
+        self.player.hand.append(Peek())
         pass
 
     def exit(self):
@@ -106,20 +114,10 @@ class GameSession(Scene):
             if self.game_state['turn'] == 'PLAYER':
                 if event.type == pygame.KEYDOWN:
                     # DIR STUFF...
-                    if event.key == pygame.K_UP and self.player.cursor_y != 0:
-                        self.player.cursor_y -= 1
-                    elif event.key == pygame.K_DOWN and self.player.cursor_y != self.grid.size-1:
-                        self.player.cursor_y += 1
-                    
-                    if event.key == pygame.K_LEFT and self.player.cursor_x != 0:
-                        self.player.cursor_x -= 1
-                    elif event.key == pygame.K_RIGHT and self.player.cursor_x != self.grid.size-1:
-                        self.player.cursor_x += 1
-                    
+                    self.player.get_pos_in_grid(events, self.grid.size)
                     ##############
                     if event.key == pygame.K_SPACE:
                         # try to select the BaseCard
-                        #self.game_state['scale'] 
                         valid_cards, combos = self.grid.select_attempt(self.player.cursor_x,self.player.cursor_y)
                         if len(valid_cards) != 0:
                             # OK! Pend the data to evaluate_points
@@ -130,8 +128,47 @@ class GameSession(Scene):
                             }
 
                             self.game_state['turn'] = 'EVALUATE'
+                            self.player.hand.append(Peek())
+
+                    if event.key == pygame.K_0:
+                        if len(self.player.hand) != 0:
+                            card = self.player.hand.pop(0)
+                            card.play(self.game_state)
+                            self.helpers_to_eval.append(card)
+                            
         return self
     
+    def evaluate(self):
+        raw = self.data_to_evaluate
+        print(f"evaluating {raw['player']} {raw['valid_cards']}")
+        if self.data_to_evaluate == None:
+            print("NOTHING TO EVALUATE!")
+        else:
+            self.scale.evaluate_points(raw['valid_cards'],raw["player"])
+            target = self.demons[0]
+            if raw["player"] == "player":
+                target = self.player
+
+            if raw["combos"] > 0:
+                self.grid.replace_cards(Grid.flatten_list(raw['valid_cards']),target)
+
+            # if not win..
+            if self.scale.who_won() == None:
+                if raw["player"] == "player":
+                    self.game_state['turn'] = 'DEMON'
+                else:
+                    self.game_state['turn'] = 'PLAYER'
+            else:
+                self.game_state['turn'] = 'HANG'
+
+            # Now, CLEAN!
+            for helper in self.helpers_to_eval:
+                print(f"Cleaning: {helper.name}")
+                helper.clean_up(self.game_state)
+            
+            self.data_to_evaluate = None
+            self.helpers_to_eval = []
+            
     def update(self, dt):
         '''
         Called every frame. Returns new State or None.
@@ -142,30 +179,7 @@ class GameSession(Scene):
                 self.demon_turn()
 
             case "EVALUATE": # The game checker each turn...
-                raw = self.data_to_evaluate
-                print(f"evaluating {raw['player']} {raw['valid_cards']}")
-                if self.data_to_evaluate == None:
-                    print("NOTHING TO EVALUATE!")
-                else:
-                    self.scale.evaluate_points(raw['valid_cards'],raw["player"])
-                    target = self.demons[0]
-                    if raw["player"] == "player":
-                        target = self.player
-
-                    if raw["combos"] > 0:
-                        self.grid.replace_cards(Grid.flatten_list(raw['valid_cards']),target)
-
-                    # if not win..
-                    if self.scale.who_won() == None:
-                        if raw["player"] == "player":
-                            self.game_state['turn'] = 'DEMON'
-                        else:
-                            self.game_state['turn'] = 'PLAYER'
-                    else:
-                        self.game_state['turn'] = 'HANG'
-
-                    # Now, CLEAN!
-                    self.data_to_evaluate = None
+                self.evaluate()
 
             case "HANG":
                 if self.countdown >= 2:
@@ -186,15 +200,19 @@ class GameSession(Scene):
         screen.fill((255, 255, 255))          # clear screen each frame
         card_surface.fill((255,255,255))
 
-        c_text = font.render(f"{cursor_x,cursor_y}\n\
-    player:{self.scale.player_score}\ndemon:{self.scale.demon_score}\ndelta:{self.scale.get_delta_score()}\nturn:{self.game_state['turn']}"
-        , True, (0,0,0)) # create text surface  
-        # Now, blit the BaseCard things.
+        c_text = font.render(f"{cursor_x,cursor_y}\nplayer:{self.scale.player_score, len(self.player.session_deck)}\ndemon:{self.scale.demon_score,  len(self.demons[0].session_deck)}\ndelta:{self.scale.get_delta_score()}\nturn:{self.game_state['turn']}"
+        , True, (0,0,0)) # create text surface
 
+        hand_text = ""
+        for i in self.player.hand:
+            hand_text += f"{i} "
+        h_text = font.render(hand_text, True, (0,0,0))
+        e_text = font.render(f"effects: {','.join(self.grid.get_item(cursor_x,cursor_y).effects)}"
+        , True, (0,0,0))
+        # Now, blit the BaseCard things.
         for y in range(self.grid.size):
             for x in range(self.grid.size):
                 card = self.grid.grid[y][x]
-
                 if card.flipped:
                     if card.owner == "demon":
                         card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(card.value)],(255,255,255),(200,0,0))
@@ -210,10 +228,15 @@ class GameSession(Scene):
                     if card.owner == "spooky":
                         card_surface.blit(self.palette_swap(self.CARD_TEXTURES['backside'],(255,255,255),(200,0,155)), (x*20 + 10,y*30))
                 
+                if "Peek" in card.effects:
+                    card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(card.value)],(255,255,255),(205,100,155))
+                        , (x*20 + 10,y*30))
         card_surface.blit(self.CARD_TEXTURES['select'],(cursor_x*20 + 10,cursor_y*30))
 
         screen.blit(card_surface)
-        screen.blit(c_text,(100,10))   
+        screen.blit(c_text,(100,10))
+        screen.blit(h_text,(100,80))
+        screen.blit(e_text,(100,100))
         if self.scale.who_won() == "player":
             screen.blit(font.render("you win",True, (0,0,0)),(100,60))   
         elif self.scale.who_won() == "demon":

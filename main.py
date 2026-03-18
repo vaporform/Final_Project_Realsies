@@ -1,8 +1,5 @@
 import pygame
 import random
-from Objects import Grid
-from Cards import BaseCard, HelperCard
-from Players import Demon, Player
 
 from Scenes.TitleScreen import TitleScreen
 
@@ -50,7 +47,7 @@ class GameApp:
                 self.current_scene = next_scene
                 self.current_scene.enter() # Setup new scene
             
-            self.screen.fill("white")
+            self.screen.fill("pink")
             self.current_scene.draw(self.screen)
             pygame.display.flip()
 

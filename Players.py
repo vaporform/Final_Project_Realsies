@@ -1,7 +1,8 @@
 from Objects import Grid
 import random
+import pygame
 
-class Player:
+class BasePlayer:
     def __init__(self,deck=None,hand=None):
         if deck == None:
             self.deck = []
@@ -14,15 +15,9 @@ class Player:
             self.hand = hand
         
         self.session_deck = self.deck
-        self.session_hand = self.hand
 
-        self.points = 0
         self.cursor_x = 0
         self.cursor_y = 0
-
-    def get_input(self,events):
-        
-        pass
     
     def choose_and_remove(self, amount):
         arr = []
@@ -33,7 +28,31 @@ class Player:
                 arr.append(c)
         return arr
 
-class Demon(Player):
+
+class Player(BasePlayer):
+    def __init__(self, deck, hand):
+        self.helper_cards = []
+        super().__init__(deck,hand)
+
+    def get_pos_in_grid(self,events,grid_size):
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                # DIR STUFF...
+                if event.key == pygame.K_UP and self.cursor_y != 0:
+                    self.cursor_y -= 1
+                elif event.key == pygame.K_DOWN and self.cursor_y != grid_size-1:
+                    self.cursor_y += 1
+                
+                if event.key == pygame.K_LEFT and self.cursor_x != 0:
+                    self.cursor_x -= 1
+                elif event.key == pygame.K_RIGHT and self.cursor_x != grid_size-1:
+                    self.cursor_x += 1
+        pass
+    
+    def choose_helper(self):
+        return random.choice(self.helper_cards)
+
+class Demon(BasePlayer):
     def __init__(self,name="None",description="None", deck=[], hand=[]):
         self.name = name
         self.description = description

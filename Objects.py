@@ -1,4 +1,4 @@
-from Cards import BaseCard, HelperCard
+from BaseCard import BaseCard
 import random
 import pygame
 
@@ -190,12 +190,6 @@ class Scale:
                             self.demon_score += individual_card.value
 
                         s += individual_card.value
-
-                    # Bonus!
-                    if player.lower() == "player":
-                        self.player_score += 5
-                    elif player.lower() == "demon":
-                        self.demon_score += 5
 
 if __name__ == "__main__":
     import pygame
