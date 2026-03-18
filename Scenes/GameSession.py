@@ -9,10 +9,7 @@ import pygame
 # note to self: when coding, we must think that this file exists at the "root" of the project ( or where we place our main )
 class GameSession(Scene):
     def __init__(self):
-        self.game_state = { 
-            "turn":"PLAYER",
-        }
-        self.scale = Scale(30)
+        self.scale = Scale(50)
 
         GRID_SIZE = 4
         self.grid = Grid(GRID_SIZE)
@@ -42,6 +39,15 @@ class GameSession(Scene):
             "player": "player"  # or "demon"
         }
         '''
+
+        self.game_state = { 
+            "turn":"PLAYER",
+            "player":self.player,
+            "grid":self.grid,
+            "demon":self.demons[0],
+            "scale":self.scale
+        }
+    
     def palette_swap(self,surf, old_c, new_c):
         img_copy = pygame.Surface(surf.get_size())
         img_copy.fill(new_c)
@@ -71,8 +77,9 @@ class GameSession(Scene):
         Reset music, set player positions, etc.
         For loading assets or heavy stuff, it is advisable to load via __init__ instead.
         '''
-         # Now, pick cards from it equally.
-        select_cards = self.player.choose_and_remove(8) + self.demons[0].choose_and_remove(8)
+        # Now, pick cards from it equally.
+        amount = self.grid.size/2
+        select_cards = self.player.choose_and_remove(amount) + self.demons[0].choose_and_remove(amount)
         
         random.shuffle(select_cards)
         grid_coords = self.grid.get_all_coords()

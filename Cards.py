@@ -1,6 +1,7 @@
 class BaseCard:
     def __init__(self, value=1, x=0,y=0,owner="None"):
         self.flipped = False
+        self.effects = [] # stuff to store effects :P
         self.value = value
         # Additional info
         self.x = x
@@ -22,9 +23,15 @@ class BaseCard:
 ############################################
 
 class HelperCard:
-    def __init__(self, n, d):
+    def __init__(self, n, d, function):
         self.name = n
         self.description = d
+        self.function = function
     
     def play(self, game_state):
+        # this allows the card to fully edit everything in game
+        self.function(game_state)
         pass
+
+class Peek(HelperCard):
+    def __
