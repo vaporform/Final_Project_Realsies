@@ -131,7 +131,7 @@ class GameSession(Scene):
                             self.player.hand.append(Peek())
 
                     if event.key == pygame.K_0:
-                        if len(self.player.hand) != 0:
+                        if len(self.player.hand) != 0 and self.player.hand[0].verify(self.game_state):
                             card = self.player.hand.pop(0)
                             card.play(self.game_state)
                             self.helpers_to_eval.append(card)
@@ -229,8 +229,9 @@ class GameSession(Scene):
                         card_surface.blit(self.palette_swap(self.CARD_TEXTURES['backside'],(255,255,255),(200,0,155)), (x*20 + 10,y*30))
                 
                 if "Peek" in card.effects:
-                    card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(card.value)],(255,255,255),(205,100,155))
+                    card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(abs(card.value))],(255,255,255),(205,90,150))
                         , (x*20 + 10,y*30))
+
         card_surface.blit(self.CARD_TEXTURES['select'],(cursor_x*20 + 10,cursor_y*30))
 
         screen.blit(card_surface)
