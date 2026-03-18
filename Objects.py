@@ -114,7 +114,7 @@ class Grid:
     def select_attempt(self,x,y):
         try:
             selected = self.get_item(x,y)
-            if selected.flipped: return [], 0
+            if selected.flipped or selected.lock: return [], 0
 
             valid_cards = [selected,[],[]] #selected, r, c
             combos = 0

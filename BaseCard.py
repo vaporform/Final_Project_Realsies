@@ -1,8 +1,10 @@
+
 class BaseCard:
     def __init__(self, value=1, x=0,y=0,owner="None"):
         self.flipped = False
-        self.effects = {} # stuff to store effects :P
+        self.effects = [] # stuff to store effects :P
         self.value = value
+        self.lock = False # *stops u from picking me >:D*
         # Additional info
         self.x = x
         self.y = y
@@ -10,7 +12,8 @@ class BaseCard:
         self.owner = owner
 
     def flip(self):
-        self.flipped = not self.flipped
+        if not self.lock:
+            self.flipped = not self.flipped
     
     @staticmethod
     def deck_creator(rates, values, owner):

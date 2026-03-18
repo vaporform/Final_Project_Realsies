@@ -32,6 +32,7 @@ class BasePlayer:
 class Player(BasePlayer):
     def __init__(self, deck, hand, helper_cards):
         self.helper_cards = helper_cards
+        self.picked_helper = False
         super().__init__(deck,hand)
 
     def get_pos_in_grid(self,events,grid_size):
@@ -50,7 +51,7 @@ class Player(BasePlayer):
         pass
     
     def choose_helper(self):
-        return random.choice(self.helper_cards)
+        return random.choice(self.helper_cards)()
 
 class Demon(BasePlayer):
     def __init__(self,name="None",description="None", deck=[], hand=[]):
@@ -63,7 +64,7 @@ class Demon(BasePlayer):
     def decide(self,grid: Grid): # Method Overriding!
         # maybe decide?
         # get all grids that aren't flipped...
-        valid = grid.get_filtered_cards(lambda card: card.flipped == False)
+        valid = grid.get_filtered_cards(lambda card: card.flipped == False and card.lock == False)
         choice = random.choice(valid)
         # Type, data
         return "CARD",choice

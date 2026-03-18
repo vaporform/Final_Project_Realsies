@@ -14,6 +14,7 @@ class HelperCard:
     def __init__(self, n, d):
         self.name = n
         self.description = d
+        self.coord = None # maybe useful for storing player's chosen card
 
     def verify(self, game_state):
         '''
@@ -51,6 +52,21 @@ class HelperCard:
         print("WARNING! DID NOT CHECK RM!")
         return True
 
+    def basic_verify(self,game_state):
+        plyr = game_state["player"]
+        print(plyr.deck, len(plyr.deck))
+        self.coord = (plyr.cursor_x, plyr.cursor_y)
+        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
+        if temp_card.flipped == False and not self.name in temp_card.effects:
+            return True
+        return False
+    
+    def basic_send_effect(self,game_state):
+        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
+        temp_card.effects.append(self.name)
+        print(temp_card.effects)
+        print(f"Successfully appended {self.name}!")
+        
     def __str__(self):
         return self.name
     
@@ -67,28 +83,101 @@ class Peek(HelperCard):
         )
     
     def verify(self,game_state=HelperCard._mock_up_data):
-        plyr = game_state["player"]
-        print(plyr.deck, len(plyr.deck))
-        self.coord = (plyr.cursor_x, plyr.cursor_y)
-        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
-        if temp_card.flipped == False and not "Peek" in temp_card.effects:
-            return True
-        return False
+        return self.basic_verify(game_state)
 
     def play(self, game_state=HelperCard._mock_up_data):
-        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
-        temp_card.effects["Peek"] = self.play_on_eval(None)
-        print(temp_card.effects)
-        print("Successfully appended peek!")
+        self.basic_send_effect(game_state)
 
     def clean_up(self, game_state):
         temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
         if "Peek" in temp_card.effects:
-            del temp_card.effects["Peek"]
+            temp_card.effects.remove("Peek")
             print("Removed peek effect! OK!")
         else:
             print("Card may have been changed, revert.")
 
 class Lock(HelperCard):
+    def __init__(self):
+        self.coord = None
+        super().__init__("Lock",
+        "Makes the card impossible to pick from either sides.",
+        )
+        self.round = 0
+    
+    def verify(self,game_state=HelperCard._mock_up_data):
+        plyr = game_state["player"]
+        print(plyr.deck, len(plyr.deck))
+        self.coord = (plyr.cursor_x, plyr.cursor_y)
+        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
+        if temp_card.flipped == False and not temp_card.lock:
+            return True
+        return False
 
-    pass
+    def play(self, game_state=HelperCard._mock_up_data):
+        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
+        temp_card.lock = True
+        print("Successfully appended!")
+
+    def clean_up(self, game_state):
+        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
+        if temp_card.lock == True:
+            temp_card.lock = False
+            print("Removed lock effect! OK!")
+        else:
+            print("Card may have been changed, revert.")
+
+    def play_on_eval(self,gs):
+        self.round += 1
+
+    def remove_check(self, game_state):
+        if self.round == 2:
+            return True
+        return False
+
+class TwoTime(HelperCard):
+    def __init__(self):
+        self.coord = None
+        super().__init__("Two Time",
+        "Let you choose cards twice",
+        )
+
+    def clean_up(self, game_state):
+        game_state['turn'] = 'PLAYER'
+
+class Trap(HelperCard):
+    def __init__(self):
+        self.coord = None
+        self.triggered = False
+        super().__init__("Trap",
+        "Drain card points from opponent if picked.",
+        )
+        self.round = 0
+    
+    def verify(self,game_state=HelperCard._mock_up_data):
+        return self.basic_verify(game_state)
+
+    def clean_up(self, game_state):
+        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
+        if self.name in temp_card.effects:
+            temp_card.effects.remove(self.name)
+            print("Removed lock effect! OK!")
+        else:
+            print("Card may have been changed, revert.")
+
+    def play(self,gs):
+        self.basic_send_effect(gs)
+
+    def play_on_eval(self,gs):
+        self.round += 1
+        if gs['turn'] == 'DEMON':
+            temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
+            Scale.player_score += temp_card.value
+            temp_card.value = 0
+            self.triggered = True
+
+    def remove_check(self, game_state):
+        return self.triggered
+
+helpers = [
+    Peek, Lock, TwoTime, Trap
+]

@@ -17,9 +17,6 @@ class GameSession(Scene):
         self.grid = Grid(GRID_SIZE)
 
         normal_val= [1,2,3]
-        helpers = [
-            Peek(), 
-        ]
 
         self.player = Player(deck=BaseCard.deck_creator([18,4,2],normal_val,"player"),
                             helper_cards=helpers,
@@ -33,9 +30,11 @@ class GameSession(Scene):
         self.CARD_TEXTURES = {
             "backside":pygame.image.load("assets/sprites/cards/test.png").convert(),
             "select":pygame.image.load("assets/sprites/cards/select.png").convert_alpha(),
+            "0":pygame.image.load("assets/sprites/cards/0.png").convert(),
             "1":pygame.image.load("assets/sprites/cards/1.png").convert(),
             "2":pygame.image.load("assets/sprites/cards/2.png").convert(),
             "3":pygame.image.load("assets/sprites/cards/3.png").convert(),
+            "Lock":pygame.image.load("assets/sprites/cards/lock.png").convert(),
         }
 
         #self.SPOOKY = BaseCard.deck_creator([14,8,2],[-1,-2,-3],"spooky")
@@ -59,7 +58,6 @@ class GameSession(Scene):
         }
 
         # Queue for executing card stuff ig..
-
         self.helpers_to_eval = []
         
     def palette_swap(self,surf, old_c, new_c):
@@ -105,9 +103,11 @@ class GameSession(Scene):
         self.grid.set_tiles_from_coords(
             grid_coords,select_cards
         )
-
-        self.player.hand.append(Peek())
+        '''
+        for _ in range(16):
+            self.player.hand.append(Lock())
         pass
+        '''
 
     def exit(self):
         '''
@@ -137,10 +137,15 @@ class GameSession(Scene):
                             }
 
                             self.game_state['turn'] = 'EVALUATE'
-                            self.player.hand.append(Peek())
+                            if self.player.picked_helper == False:
+                                print("Giving player...")
+                                self.player.hand.append(self.player.choose_helper())
+
+                            self.player.picked_helper = False
 
                     if event.key == pygame.K_0:
                         if len(self.player.hand) != 0 and self.player.hand[0].verify(self.game_state):
+                            self.player.picked_helper = True
                             card = self.player.hand.pop(0)
                             card.play(self.game_state)
                             self.helpers_to_eval.append(card)            
@@ -149,6 +154,10 @@ class GameSession(Scene):
     def evaluate(self):
         raw = self.data_to_evaluate
         #print(f"evaluating {raw['player']} {raw['valid_cards']}")
+        for i in self.helpers_to_eval:
+            i.play_on_eval(self.game_state)
+            # bruhhh
+
         if self.data_to_evaluate == None:
             print("NOTHING TO EVALUATE!")
         else:
@@ -167,25 +176,26 @@ class GameSession(Scene):
                 self.game_state['turn'] = 'HANG'
 
             # Now, CLEAN!
-            for helper in self.helpers_to_eval:
-                try:
-                    print(f"Cleaning: {helper.name}")
-                    helper.clean_up(self.game_state)
-                except Exception as e:
-                    print(f"ERROR! {helper}",e,)
-            
             if raw["combos"] > 0:
                 self.grid.replace_cards(Grid.flatten_list(raw['valid_cards'][1:]),target)
 
             self.data_to_evaluate = None
 
-            # Now, I think I could make a "timer" for it...
-            helpers_copy = self.helpers_to_eval.copy()
-            for i in helpers_copy:
-                if i.remove_check(self.game_state):
-                    self.helpers_to_eval.remove(i)
+        # Now, I think I could make a "timer" for it...
+        helpers_copy = self.helpers_to_eval.copy()
+        for helper in helpers_copy:
+            if helper.remove_check(self.game_state):
+                print("OK REMOVE: ",helper)
+                try:
+                    print(f"Cleaning: {helper.name}")
+                    helper.clean_up(self.game_state)
+                except Exception as e:
+                    print(f"ERROR! {helper}",e,)
+                self.helpers_to_eval.remove(helper)
+            else:
+                print("NG: ",helper)
 
-            helpers_copy = [] # just clear...
+        helpers_copy = [] # just clear...
 
             #self.helpers_to_eval = []
             
@@ -227,7 +237,7 @@ class GameSession(Scene):
         for i in self.player.hand:
             hand_text += f"{i} "
         h_text = font.render(hand_text, True, (0,0,0))
-        e_text = font.render(f"effects: {','.join(self.grid.get_item(cursor_x,cursor_y).effects)}\neval:{self.helpers_to_eval}"
+        e_text = font.render(f"effects: {','.join(self.grid.get_item(cursor_x,cursor_y).effects)}\nlocked:{self.grid.get_item(cursor_x,cursor_y).lock}\neval:{self.helpers_to_eval}"
         , True, (0,0,0))
         # Now, blit the BaseCard things.
         for y in range(self.grid.size):
@@ -250,6 +260,10 @@ class GameSession(Scene):
                 
                 if "Peek" in card.effects:
                     card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(abs(card.value))],(255,255,255),(205,90,150))
+                        , (x*20 + 10,y*30))
+                    
+                if card.lock:
+                    card_surface.blit(self.palette_swap(self.CARD_TEXTURES['Lock'],(255,255,255),(205,90,150))
                         , (x*20 + 10,y*30))
 
         card_surface.blit(self.CARD_TEXTURES['select'],(cursor_x*20 + 10,cursor_y*30))
