@@ -137,7 +137,7 @@ class GameSession(Scene):
                             }
 
                             self.game_state['turn'] = 'EVALUATE'
-                            if self.player.picked_helper == False:
+                            if self.player.picked_helper == False and len(self.player.hand) < self.player.hand_limit:
                                 print("Giving player...")
                                 self.player.hand.append(self.player.choose_helper())
 

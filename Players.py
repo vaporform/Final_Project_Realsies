@@ -33,6 +33,7 @@ class Player(BasePlayer):
     def __init__(self, deck, hand, helper_cards):
         self.helper_cards = helper_cards
         self.picked_helper = False
+        self.hand_limit = 4
         super().__init__(deck,hand)
 
     def get_pos_in_grid(self,events,grid_size):
