@@ -4,38 +4,30 @@ from BaseCard import *
 from HelperCard import *
 
 from Players import *
+from GraphicHelper import *
 
 import random
+import math
 import pygame
 
 # note to self: when coding, we must think that this file exists at the "root" of the project ( or where we place our main )
 class GameSession(Scene):
     def __init__(self):
-        self.scale = Scale(50)
+        self.scale = Scale(20)
 
         GRID_SIZE = 4
         self.grid = Grid(GRID_SIZE)
 
         normal_val= [1,2,3]
 
-        self.player = Player(deck=BaseCard.deck_creator([18,4,2],normal_val,"player"),
-                            helper_cards=helpers,
-                            hand=[]
-                            )
-
+        self.player = Player(deck=BaseCard.deck_creator([18,4,2],normal_val,"player"),helper_cards=helpers,hand=[])
+        self.player.hand_limit = 10
         self.demons = [
-            Demon("Imp","An annoying low-level demon",BaseCard.deck_creator([16,6,2],normal_val,"demon"))
+           Demon("Imp","An annoying low-level demon",BaseCard.deck_creator([16,6,2],normal_val,"demon"))
+           #Abigor(BaseCard.deck_creator([16,6,2],normal_val,"demon"))
+           #Baphomet(BaseCard.deck_creator([16,6,2],normal_val,"demon"))
+           #Zariel(BaseCard.deck_creator([16,6,2],normal_val,"demon"))
         ]
-
-        self.CARD_TEXTURES = {
-            "backside":pygame.image.load("assets/sprites/cards/test.png").convert(),
-            "select":pygame.image.load("assets/sprites/cards/select.png").convert_alpha(),
-            "0":pygame.image.load("assets/sprites/cards/0.png").convert(),
-            "1":pygame.image.load("assets/sprites/cards/1.png").convert(),
-            "2":pygame.image.load("assets/sprites/cards/2.png").convert(),
-            "3":pygame.image.load("assets/sprites/cards/3.png").convert(),
-            "Lock":pygame.image.load("assets/sprites/cards/lock.png").convert(),
-        }
 
         #self.SPOOKY = BaseCard.deck_creator([14,8,2],[-1,-2,-3],"spooky")
         self.countdown = 0
@@ -59,13 +51,9 @@ class GameSession(Scene):
 
         # Queue for executing card stuff ig..
         self.helpers_to_eval = []
-        
-    def palette_swap(self,surf, old_c, new_c):
-        img_copy = pygame.Surface(surf.get_size())
-        img_copy.fill(new_c)
-        surf.set_colorkey(old_c)
-        img_copy.blit(surf, (0, 0))
-        return img_copy
+
+        self.delta_time = 0
+        BaseCard.load_graphics()
 
     def demon_turn(self):
         choice_type, data = self.demons[0].decide(self.grid)
@@ -81,6 +69,8 @@ class GameSession(Scene):
                     }
                     
                     self.game_state['turn'] = 'EVALUATE'
+            case "ACTION":
+                self.helpers_to_eval.append(data)
 
     #########################################################
     def enter(self):
@@ -119,36 +109,43 @@ class GameSession(Scene):
     def handle_input(self, events):
         ''' Process keys. Returns 'self' or a NEW Scene.'''
         for event in events:
-            if self.game_state['turn'] == 'PLAYER':
-                if event.type == pygame.KEYDOWN:
-                    # DIR STUFF...
-                    self.player.get_pos_in_grid(events, self.grid.size)
-                    ##############
-                    if event.key == pygame.K_SPACE:
-                        # try to select the BaseCard
-                        valid_cards, combos = self.grid.select_attempt(self.player.cursor_x,self.player.cursor_y)
-                        print("valid: ",valid_cards)
-                        if len(valid_cards) != 0:
-                            # OK! Pend the data to evaluate_points
-                            self.data_to_evaluate = {
-                                "valid_cards": valid_cards,
-                                "combos": combos,
-                                "player": "player"  # or "demon"
-                            }
+            if self.game_state['turn'] == 'PLAYER' and event.type == pygame.KEYDOWN:
 
-                            self.game_state['turn'] = 'EVALUATE'
-                            if self.player.picked_helper == False and len(self.player.hand) < self.player.hand_limit:
-                                print("Giving player...")
-                                self.player.hand.append(self.player.choose_helper())
+                keys = pygame.key.get_pressed()
+                self.player.grid_move = any([
+                    keys[pygame.K_UP],
+                    keys[pygame.K_DOWN],
+                    keys[pygame.K_LEFT],
+                    keys[pygame.K_RIGHT]
+                ])
+                self.player.get_pos_in_grid(events, self.grid.size)
+                ##############
+                if event.key == pygame.K_SPACE:
+                    # try to select the BaseCard
+                    valid_cards, combos = self.grid.select_attempt(self.player.cursor_x,self.player.cursor_y)
+                    print("valid: ",valid_cards)
+                    if len(valid_cards) != 0:
+                        # OK! Pend the data to evaluate_points
+                        self.data_to_evaluate = {
+                            "valid_cards": valid_cards,
+                            "combos": combos,
+                            "player": "player"  # or "demon"
+                        }
 
-                            self.player.picked_helper = False
+                        self.game_state['turn'] = 'EVALUATE'
+                        if self.player.picked_helper == False and len(self.player.hand) < self.player.hand_limit:
+                            print("Giving player...")
+                            self.player.hand.append(self.player.choose_helper())
 
-                    if event.key == pygame.K_0:
-                        if len(self.player.hand) != 0 and self.player.hand[0].verify(self.game_state):
-                            self.player.picked_helper = True
-                            card = self.player.hand.pop(0)
-                            card.play(self.game_state)
-                            self.helpers_to_eval.append(card)            
+                        self.player.picked_helper = False
+
+                if event.key == pygame.K_0:
+                    if len(self.player.hand) != 0 and self.player.hand[0].verify(self.game_state):
+                        self.player.picked_helper = True
+                        card = self.player.hand.pop(0)
+                        card.play(self.game_state)
+                        self.helpers_to_eval.append(card) 
+            self.player.grid_move = False         
         return self
     
     def evaluate(self):
@@ -216,63 +213,109 @@ class GameSession(Scene):
                     print("Aye aye!")
                     return GameSession()
                 self.countdown += dt
+        self.delta_time += dt
         return None
 
     def draw(self, screen):
         '''Called for rendering the scene.'''
+        # clear screen each frame
+        screen.fill((0, 0, 0))
+
+        #region ========================= CARDS =========================
         cursor_x = self.player.cursor_x
         cursor_y = self.player.cursor_y
-
-        card_surface = pygame.Surface((200,200))
-
-        font = pygame.font.Font(None, 16) # load default font
-
-        screen.fill((255, 255, 255))          # clear screen each frame
-        card_surface.fill((255,255,255))
-
-        c_text = font.render(f"{cursor_x,cursor_y}\nplayer:{self.scale.player_score, len(self.player.session_deck)}\ndemon:{self.scale.demon_score,  len(self.demons[0].session_deck)}\ndelta:{self.scale.get_delta_score()}\nturn:{self.game_state['turn']}"
-        , True, (0,0,0)) # create text surface
-
-        hand_text = ""
-        for i in self.player.hand:
-            hand_text += f"{i} "
-        h_text = font.render(hand_text, True, (0,0,0))
-        e_text = font.render(f"effects: {','.join(self.grid.get_item(cursor_x,cursor_y).effects)}\nlocked:{self.grid.get_item(cursor_x,cursor_y).lock}\neval:{self.helpers_to_eval}"
-        , True, (0,0,0))
+        # First, let's layer the parallax.
+        screen.blit(
+            AssetLib.get_sprite('wood'),
+            (0,0)
+        )
+        card_surface = pygame.Surface((200,200),flags=pygame.SRCALPHA).convert_alpha()
+        card_surface.fill((0,0,0,0))
+        
         # Now, blit the BaseCard things.
         for y in range(self.grid.size):
             for x in range(self.grid.size):
                 card = self.grid.grid[y][x]
-                if card.flipped:
+                card_texture = BaseCard.base_sprite_front
+                if card.owner == "spooky":
+                    card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
+
+                if card.flipped or "Peek" in card.effects:
+                    card_texture = card_texture.copy()
+                    text = text_to_surface(str(card.value),'AlmendraSC-Regular',32)
+                    ctr = card_texture.get_rect()
+                    card_texture.blit(text, text.get_rect(center=(ctr.centerx,ctr.centery-2)))
                     if card.owner == "demon":
-                        card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(card.value)],(255,255,255),(200,0,0))
-                        , (x*20 + 10,y*30))
-                    elif card.owner == "spooky":
-                        card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(abs(card.value))],(255,255,255),(200,0,155))
-                        , (x*20 + 10,y*30))
-                    else:
-                        card_surface.blit(self.CARD_TEXTURES[str(card.value)]
-                        , (x*20 + 10,y*30))
+                        card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))
                 else:
-                    card_surface.blit(self.CARD_TEXTURES['backside'], (x*20 + 10,y*30))
-                    if card.owner == "spooky":
-                        card_surface.blit(self.palette_swap(self.CARD_TEXTURES['backside'],(255,255,255),(200,0,155)), (x*20 + 10,y*30))
-                
-                if "Peek" in card.effects:
-                    card_surface.blit(self.palette_swap(self.CARD_TEXTURES[str(abs(card.value))],(255,255,255),(205,90,150))
-                        , (x*20 + 10,y*30))
+                    card_texture = BaseCard.base_sprite_back
                     
                 if card.lock:
-                    card_surface.blit(self.palette_swap(self.CARD_TEXTURES['Lock'],(255,255,255),(205,90,150))
-                        , (x*20 + 10,y*30))
+                    card_texture = AssetLib.get_sprite('cards/lock')
+                    card_texture = palette_swap(card_texture,(255,255,255),(205,90,150))
+                
+                card_surface.blit(card_texture,(x*30 + 10,y*40))
 
-        card_surface.blit(self.CARD_TEXTURES['select'],(cursor_x*20 + 10,cursor_y*30))
+        if int(self.delta_time * 4) % 2 == 0:
+            card_surface.blit(AssetLib.get_sprite('cards/select'),(cursor_x*30 + 10,cursor_y*40))
+        
+        screen.blit(card_surface,(10,10))
 
-        screen.blit(card_surface)
-        screen.blit(c_text,(100,10))
-        screen.blit(h_text,(100,80))
-        screen.blit(e_text,(100,100))
+        screen.blit(
+            palette_swap(AssetLib.get_sprite('vignette'),(255,255,255),(0,0,0,0)),
+            (-30,
+            -40))        
+        screen.blit(
+            palette_swap(AssetLib.get_sprite('border'),(255,255,255),(0,0,0,0)),
+            (-30,
+            -40))
+        #endregion ========================= **** =========================
+        
+        #region ================= RIGHT BOX =========================
+        book = AssetLib.get_sprite("book") 
+        # text can start at x=20
+        book.blit(text_to_surface("LESSONS IN MAGIC","felipa-Regular",12),(30,5))
+        book.blit(text_to_surface("------------------------------------------","felipa-Regular",10),(20,15))
+        book.blit(text_to_surface("Arrow keys to move cursor.","Tiny5-Regular",10),(20,20))
+        
+        # Let's add the scales.
+        scale_mid = AssetLib.get_sprite('scale_mid').convert_alpha()
+        scale_surface = pygame.Surface((100,100),flags=pygame.SRCALPHA).convert_alpha()
+        scale_surface.fill((155,0,155))
+        human_scale = AssetLib.get_sprite('plate').convert_alpha()
+        demon_scale = AssetLib.get_sprite('plate').convert_alpha()
+        
+        delta = self.scale.get_delta_score()
+        
+        delta_move = ((delta  / self.scale.threshold) * 30)
+        delta_move = max(-30,min(delta_move,30))
+        human_scale_pos = (scale_surface.get_width() // 2 + 30, human_scale.get_height() // 2 + 35 + delta_move)
+        demon_scale_pos = (scale_surface.get_width() // 2 - 30, demon_scale.get_height() // 2 + 35 - delta_move)
+
+        
+        delta_text = text_to_surface(f"Δ{delta}x")
+        pygame.draw.line(scale_surface, (0,0,0), (human_scale_pos[0],human_scale_pos[1]-10),
+        (demon_scale_pos[0],demon_scale_pos[1]-10))
+        
+        #scale_surface.blit(AssetLib.get_sprite('human_token'),human_scale.get_rect(center=human_scale_pos))
+        #scale_surface.blit(AssetLib.get_sprite('demon_token'),demon_scale.get_rect(center=demon_scale_pos))
+
+        scale_surface.blit(human_scale,human_scale.get_rect(center=human_scale_pos))
+        scale_surface.blit(demon_scale,demon_scale.get_rect(center=demon_scale_pos))
+
+
+
+        scale_surface.blit(scale_mid,scale_mid.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height() // 2 + 10)))
+        scale_surface.blit(delta_text,delta_text.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height()- 5)))
+
+        
+
+        book.blit(scale_surface,(20,50))
+
+        screen.blit(book,(165,0))
+        #screen.blit(palette_swap(AssetLib.get_sprite('right_vig'),(255,255,255),(0,0,0,0)),(165,0))  
+        #endregion ========================= **** =========================
         if self.scale.who_won() == "player":
-            screen.blit(font.render("you win",True, (0,0,0)),(100,60))   
+            screen.blit(text_to_surface("You Win!"),(100,60))   
         elif self.scale.who_won() == "demon":
-            screen.blit(font.render("you lose",True, (0,0,0)),(100,60))
+            screen.blit(text_to_surface("You Lose!"),(100,60))

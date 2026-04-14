@@ -51,7 +51,7 @@ class GameApp:
             self.current_scene.draw(self.screen)
             pygame.display.flip()
 
-            self.dt = self.clock.tick(24)/1000
+            self.dt = self.clock.tick(30)/1000
         pygame.quit()
 
 if  __name__ == '__main__':

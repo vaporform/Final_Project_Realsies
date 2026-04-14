@@ -1,5 +1,16 @@
+import pygame
+from GraphicHelper import *
+# TEXTURE list
 
 class BaseCard:
+    base_sprite_front = None
+    base_sprite_back = None
+
+    @classmethod
+    def load_graphics(cls):
+        cls.base_sprite_front = AssetLib.get_sprite('cards/card_blank')
+        cls.base_sprite_back = AssetLib.get_sprite('cards/back')
+
     def __init__(self, value=1, x=0,y=0,owner="None"):
         self.flipped = False
         self.effects = [] # stuff to store effects :P
@@ -10,6 +21,7 @@ class BaseCard:
         self.y = y
 
         self.owner = owner
+        # drawing stuff...
 
     def flip(self):
         if not self.lock:
@@ -22,7 +34,7 @@ class BaseCard:
             deck.extend([values[index]] * r)
         
         return [BaseCard(value=i,owner=owner) for i in deck]
-    
+
     def __str__(self):
         return f"{self.value}"
 

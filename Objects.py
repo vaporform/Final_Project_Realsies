@@ -154,6 +154,7 @@ class Grid:
         self.set_tiles_from_coords(coords,new_cards)
 
 class Scale:
+    
     def __init__(self, ts=0):
         self.player_score = 0
         self.demon_score = 0
