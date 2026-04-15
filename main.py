@@ -8,6 +8,7 @@ class GameApp:
         '''
         Initialize the game.
         '''
+        
         pygame.init() # Inititalize the game!
         self.render_resolution = (320,180)
         self.screen_resolution = (640,480)

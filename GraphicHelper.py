@@ -1,4 +1,5 @@
 import pygame
+import math
 
 class AssetLib:
     textures = {
@@ -57,9 +58,23 @@ def palette_swap(surf, old_c, new_c):
     img_copy.blit(surf_with_key, (0, 0))
     return img_copy
 
-def text_to_surface(text, font_name='test', size=16, color=(0,0,0)):
+def text_to_surface(text, font_name='test', size=16, color=(0,0,0), outline_width=0,outline_color=(255,255,255)):
     font = AssetLib.get_font(font_name,size)
-    return font.render(str(text),False,color) # returns text surface
+
+    main_surface = font.render(str(text),False,color)
+    if outline_width <= 0:
+        return main_surface
+    
+    outline_surface = font.render(str(text),False,outline_color)
+    width, height = outline_surface.get_size()
+
+    canvas = pygame.Surface((width + 2 * outline_width, height + 2 * outline_width), pygame.SRCALPHA)
+    
+    for x,y in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]:
+        canvas.blit(outline_surface, (outline_width + x * outline_width, outline_width + y * outline_width))
+    
+    canvas.blit(main_surface, (outline_width, outline_width))
+    return canvas
 
 def lerp(start,end,amount):
     '''
@@ -67,39 +82,34 @@ def lerp(start,end,amount):
     '''
     return start + (end - start) * amount
 
-class AniManager:
-    def __init__(self):
-        self.animations = []
+def get_live_value(start, end, duration_ms, mode="linear",current_time=None):
+    '''
+    Function to get value based on.. well, time!
+    used for animating stuff :P
+    '''
+    if current_time == None:
+        current_time = pygame.time.get_ticks()
+    t = (current_time % duration_ms) / duration_ms
     
-    def add(self, duration, on_update, on_complete=None):
-        '''
-        Add an animation.
-        NOTE: on_update MUST have a parameter to pass one var!
-        '''
-        self.animations.append(
-            {
-                'progress':0.0,
-                'duration':duration,
-                'on_update':on_update,
-                'on_complete':on_complete,
-                'active': True
-            }
-        )
-    
-    def update(self,dt):
-        for animation in self.animations.copy():
-            if animation['active']:
-                animation['progress'] += dt/animation['duration']
-
-                if animation['progress'] > 1:
-                    anim['progress'] = 1
-                
-                anim['on_update'](anim['progress'])
-
-                if animation['progress'] >= 1:
-                    anim['active'] = False
-                    if anim['on_complete'] != None:
-                        anim['on_complete']()
-            
-        self.animations = [i for i in self.animations if i['active']]
-                
+    match mode:
+        case "linear":
+            progress = t
+        case "yoyo":
+            # Smooth sine wave 0 -> 1 -> 0
+            progress = (math.sin(t * math.pi * 2 - math.pi / 2) + 1) / 2
+        case "ease_out":
+            # Fast start, slow end
+            progress = 1 - (1 - t) * (1 - t)
+        case "ease_in":
+            # Slow start, fast end
+            progress = t * t
+        case "bounce":
+            # Good for a repetitive "hop"
+            progress = abs(math.sin(t * math.pi))
+        case "step":
+            # Moves in 5 distinct "ticks"
+            progress = math.floor(t * 5) / 5
+        case _:
+            progress = t
+        
+    return start + (end - start) * progress

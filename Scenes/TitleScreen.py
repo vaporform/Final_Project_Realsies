@@ -39,8 +39,8 @@ class TitleScreen(Scene):
         return self
 
     def draw(self, screen: pygame.Surface):
-
-        title = text_to_surface("Devils' Gambit", "Jacquard24-Regular", 36)
+        bob_offset = get_live_value(-3,3,3000,"yoyo")
+        title = text_to_surface("Devils' Gambit", "Jacquard24-Regular", 36,(0,0,0),1)
         wing = AssetLib.get_sprite('wings')
         
         screen.blit(wing, wing.get_rect(center=(screen.get_width() // 2 - 40, 40)))
