@@ -34,9 +34,8 @@ class GameSession(Scene):
             #Demon("Imp", "An annoying low-level demon", BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
             #Abigor(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
             # Baphomet(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
-            # Zariel(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
+            Zariel(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
         ]
-        # self.SPOOKY = BaseCard.deck_creator([14, 8, 2], [-1, -2, -3], "spooky")
 
         # STATES
         self.game_state = {

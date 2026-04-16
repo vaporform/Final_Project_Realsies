@@ -17,6 +17,27 @@ def apply_chart_style(ax, title, x_label, y_label):
     ax.grid(axis='y', linestyle='--', alpha=0.7)
     ax.set_facecolor("white")
 
+def log_to_csv(filename, data_list):
+    '''
+    Appends a single row of data to the specified CSV.
+    data_list should match the columns.
+
+    board_cards.csv: turn_n, player_cards, demon_cards
+    helper_cards.csv: card_name, times_played
+    board_values.csv: turn, scale_value
+    '''
+    with open(filename, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(data_list)
+
+def nuke_csv(filename, headers):
+    '''
+    Wipes the csv, and write only headers...
+    '''
+    with open(filename, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+
 class HelperCardView(tk.Frame):
     def __init__(self, parent, csv_path):
         super().__init__(parent, bg="white")

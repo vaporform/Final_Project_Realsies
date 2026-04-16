@@ -68,3 +68,82 @@ class Demon(BasePlayer):
         choice = random.choice(valid)
         # Type, data
         return "CARD",choice
+    
+    def get_line_stats(self, grid, card):
+        '''
+        Returns a list of dictionaries containing info about each line the card belongs to.
+        '''
+        stats = []
+        x, y = grid.get_coords_from_object(card)
+        # Assuming you added diagonals to get_related_coords, otherwise just rows/cols
+        paths = grid.get_related_coords(x, y) 
+
+        for path in paths:
+            raw_tiles = grid.get_tiles_from_coords(path)
+            # Handle your tuple/list return inconsistency here once
+            tiles = raw_tiles[0] if isinstance(raw_tiles, tuple) else raw_tiles
+            
+            # Clean list of card objects
+            line_cards = [c[0] if isinstance(c, (list, tuple)) else c for c in tiles if hasattr(c, 'flipped') or (isinstance(c, (list, tuple)) and hasattr(c[0], 'flipped'))]
+            
+            flipped = [c for c in line_cards if c.flipped]
+            stats.append({
+                "count": len(flipped),
+                "sum": sum(c.value for c in flipped),
+                "player_count": sum(1 for c in flipped if c.owner == "player"),
+                "unflipped_count": len(line_cards) - len(flipped)
+            })
+        return stats
+
+class Abigor(Demon):
+    def __init__(self,deck,hand=[]):
+        super().__init__("Abigor", "Commander of the 60 Legions. Grand duke of Hell.", deck, hand)
+
+    def decide(self, grid: Grid):
+        valid = grid.get_filtered_cards(lambda c: not c.flipped and not c.lock)
+        scored_moves = []
+
+        for card in valid:
+            score = card.value
+            for line in self.get_line_stats(grid, card):
+                if line["count"] == 3: score += 10 # Completion
+                if self.aggression > 0.5 and line["unflipped_count"] <= 2 and line["player_count"] > 0:
+                    score -= 5 # Blocking
+            scored_moves.append((score, card))
+        
+        return "CARD", max(scored_moves, key=lambda x: x[0])[1]
+
+class Fafnir(Demon):
+    def __init__(self,deck,hand=[]):
+        super().__init__("Fafnir", "Dragon that can smell value. It is blinded by numbers", deck, hand)
+
+    def decide(self, grid: Grid):
+        valid = grid.get_filtered_cards(lambda c: not c.flipped and not c.lock)
+        choice = max(valid, key=lambda c: c.value)
+        return "CARD", choice
+
+class Zariel(Demon):
+    def __init__(self, deck, hand=[]):
+        super().__init__("Zariel", "Archduke Strategist", deck, hand)
+        
+    def decide(self, grid: Grid):
+        valid = grid.get_filtered_cards(lambda c: not c.flipped and not c.lock)
+        is_mining = len(self.deck) > 4
+        scored_moves = []
+
+        for card in valid:
+            score = card.value * 2
+            for line in self.get_line_stats(grid, card):
+                # Completion Logic
+                if line["count"] == 3:
+                    score += 600 if (line["sum"] > 2 or is_mining) else -1000
+                # Trap Logic
+                elif line["count"] == 2:
+                    score += 400 if line["sum"] < -5 else -700
+                # Sabotage
+                if line["player_count"] >= 1:
+                    score += (line["sum"] * 15)
+
+            scored_moves.append((score + random.uniform(0, 5), card))
+
+        return "CARD", max(scored_moves, key=lambda x: x[0])[1]
