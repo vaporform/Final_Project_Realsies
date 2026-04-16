@@ -28,7 +28,6 @@ class BasePlayer:
                 arr.append(c)
         return arr
 
-
 class Player(BasePlayer):
     def __init__(self, deck, hand, helper_cards):
         self.helper_cards = helper_cards
