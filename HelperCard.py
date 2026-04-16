@@ -53,7 +53,11 @@ class HelperCard:
         return True
 
     def basic_verify(self,game_state):
-        plyr = game_state["player"]
+        if game_state['turn'] == "DEMON":
+            plyr = game_state["demon"]
+        else:
+            plyr = game_state["player"]
+
         print(plyr.deck, len(plyr.deck))
         self.coord = (plyr.cursor_x, plyr.cursor_y)
         temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
@@ -105,15 +109,10 @@ class Lock(HelperCard):
         self.round = 0
     
     def verify(self,game_state=HelperCard._mock_up_data):
-        plyr = game_state["player"]
-        print(plyr.deck, len(plyr.deck))
-        self.coord = (plyr.cursor_x, plyr.cursor_y)
-        temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
-        if temp_card.flipped == False and not temp_card.lock:
-            return True
-        return False
+        return self.basic_verify(game_state)
 
     def play(self, game_state=HelperCard._mock_up_data):
+        self.played_by = game_state['turn']
         temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
         temp_card.lock = True
         print("Successfully appended!")
@@ -127,10 +126,11 @@ class Lock(HelperCard):
             print("Card may have been changed, revert.")
 
     def play_on_eval(self,gs):
-        self.round += 1
+        if gs['turn'] != self.played_by:
+            self.round += 1
 
     def remove_check(self, game_state):
-        if self.round == 2:
+        if self.round >= 2:
             return True
         return False
 
@@ -141,8 +141,17 @@ class TwoTime(HelperCard):
         "Let you choose cards twice",
         )
 
+    def verify(self,gs):
+        return True
+    
+    def play(self,gs):
+        self.played_by = gs['turn']
+    
+    def remove_check(self, gs):
+        True
+    
     def clean_up(self, game_state):
-        game_state['turn'] = 'PLAYER'
+        game_state['turn'] =self.played_by
 
 class Trap(HelperCard):
     def __init__(self):
@@ -167,9 +176,9 @@ class Trap(HelperCard):
     def play(self,gs):
         self.basic_send_effect(gs)
 
-    def play_on_eval(self,gs):
+    def play_on_eval(self,game_state):
         self.round += 1
-        if gs['turn'] == 'DEMON':
+        if game_state['turn'] == 'DEMON':
             temp_card = game_state["grid"].get_item(self.coord[0], self.coord[1])
             Scale.player_score += temp_card.value
             temp_card.value = 0

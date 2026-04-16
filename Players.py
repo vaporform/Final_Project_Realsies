@@ -69,6 +69,13 @@ class Demon(BasePlayer):
         # Type, data
         return "CARD",choice
     
+    def update_cursor_pos(self, pos):
+        '''
+        YOU MUST UPDATE THIS BEFORE SENDING!
+        '''
+        self.cursor_x = pos[0]
+        self.cursor_y = pos[1]
+
     def get_line_stats(self, grid, card):
         '''
         Returns a list of dictionaries containing info about each line the card belongs to.
@@ -94,6 +101,29 @@ class Demon(BasePlayer):
                 "unflipped_count": len(line_cards) - len(flipped)
             })
         return stats
+
+    def choose_helper(self):
+        return random.choice(self.hand)()
+
+class Imp(Demon):
+    def __init__(self, deck, hand=[]):
+        self.skill_used = False
+        super().__init__("Imp", "A low level demon. It does not have a care in the world.", deck, hand)
+
+    def decide(self,grid: Grid): # Method Overriding!
+        # maybe decide?
+        # get all grids that aren't flipped...
+        valid = grid.get_filtered_cards(lambda card: card.flipped == False and card.lock == False)
+        choice = random.choice(valid)
+        self.update_cursor_pos(grid.get_coords_from_object(choice))
+        # Type, data
+        if random.random() < 0.3 and not self.skill_used:
+            skill = self.choose_helper()
+            self.skill_used = True
+            return "ACTION", skill
+
+        self.skill_used = False
+        return "CARD",choice
 
 class Abigor(Demon):
     def __init__(self,deck,hand=[]):

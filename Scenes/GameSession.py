@@ -34,7 +34,8 @@ class GameSession(Scene):
             #Demon("Imp", "An annoying low-level demon", BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
             #Abigor(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
             # Baphomet(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
-            Zariel(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
+            #Zariel(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
+            Imp(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"),[Lock, TwoTime])
         ]
 
         # STATES
@@ -78,10 +79,17 @@ class GameSession(Scene):
                         "combos": combos,
                         "player": "demon"  # or "demon"
                     }
-                    
-                    self.game_state['turn'] = 'EVALUATE'
             case "ACTION":
-                self.helpers_to_eval.append(data)
+                print(f"The demon uses {data}")
+                if data.verify(self.game_state):
+                    # then it's OK
+                    #self.helpers_to_eval.append(data)
+                    data.play(self.game_state)
+                    self.helpers_to_eval.append(data)
+                else:
+                    print(" The demon passed it's turn.")
+        
+        self.game_state['turn'] = 'EVALUATE'
 
     #########################################################
     def enter(self):
@@ -165,8 +173,10 @@ class GameSession(Scene):
             i.play_on_eval(self.game_state)
             
         if self.data_to_evaluate == None:
-            print("NOTHING TO EVALUATE!")
-            return 
+            print("NOTHING TO EVALUATE! SWITCH 2 PLAYER!")
+            self.game_state['turn'] = 'PLAYER' 
+            self._clean_helpers()
+            return
         
         self._resolve_turn()
         self._clean_helpers()
@@ -312,16 +322,22 @@ class GameSession(Scene):
         
         delta_move = ((delta  / self.scale.threshold) * 30)
         delta_move = max(-30,min(delta_move,30))
+
         human_scale_pos = (scale_surface.get_width() // 2 + 30, human_scale.get_height() // 2 + 35 + delta_move)
         demon_scale_pos = (scale_surface.get_width() // 2 - 30, demon_scale.get_height() // 2 + 35 - delta_move)
-
         
         delta_text = text_to_surface(f"Δ{delta}x")
         pygame.draw.line(scale_surface, (0,0,0), (human_scale_pos[0],human_scale_pos[1]-10),
         (demon_scale_pos[0],demon_scale_pos[1]-10))
-        
-        #scale_surface.blit(AssetLib.get_sprite('human_token'),human_scale.get_rect(center=human_scale_pos))
-        #scale_surface.blit(AssetLib.get_sprite('demon_token'),demon_scale.get_rect(center=demon_scale_pos))
+
+        human_size = max(5, 15 + delta//2) 
+        demon_size = max(5, 15 - delta//2)
+
+        human_token = pygame.transform.scale(AssetLib.get_sprite('human_token'), (int(human_size), int(human_size)))
+        demon_token = pygame.transform.scale(AssetLib.get_sprite('demon_token'), (int(demon_size), int(demon_size)))
+
+        scale_surface.blit(human_token, (human_scale_pos[0] - human_size // 2, human_scale_pos[1] - human_size // 2 + (15 - human_size) / 2))
+        scale_surface.blit(demon_token, (demon_scale_pos[0] - demon_size // 2, demon_scale_pos[1] - demon_size // 2 + (15 - demon_size) / 2))
 
         scale_surface.blit(human_scale,human_scale.get_rect(center=human_scale_pos))
         scale_surface.blit(demon_scale,demon_scale.get_rect(center=demon_scale_pos))
