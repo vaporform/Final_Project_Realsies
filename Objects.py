@@ -30,8 +30,21 @@ class Grid:
         column = [[x,i] for i in range(self.size)]
 
         # get diagonals
-        #diag_to_left = [grid.get_item(x,i)]
-        return row, column
+        diag_up = []
+        diag_down = []
+
+        for i in range(self.size):
+            for j in range(self.size):
+                # Main Diagonal (\): the distance between coordinates is the same
+                if (i - j) == (x - y):
+                    diag_down.append([i, j])
+                    
+                # Anti-Diagonal (/): the sum of coordinates is the same
+                if (i + j) == (x + y):
+                    diag_up.append([i, j])
+
+        print(diag_up,diag_down)
+        return row, column,diag_up,diag_down
     
     def get_tiles_from_coords(self, coords):
         temp = []
@@ -116,15 +129,18 @@ class Grid:
             selected = self.get_item(x,y)
             if selected.flipped or selected.lock: return [], 0
 
-            valid_cards = [selected,[],[]] #selected, r, c
+            valid_cards = [selected,[],[],[]] #selected, r, c, diag
             combos = 0
 
             selected.flip()
 
             # now check for combos
-            row_coords, col_coords = self.get_related_coords(x,y)
+            row_coords, col_coords, diag_up_coords, diag_down_coords = self.get_related_coords(x,y)
             row_cards,_  = self.get_tiles_from_coords(row_coords)
             col_cards,_ = self.get_tiles_from_coords(col_coords)
+            diag_up_cards,_  = self.get_tiles_from_coords(diag_up_coords)
+            diag_down_cards,_ = self.get_tiles_from_coords(diag_down_coords)
+
 
             if sum([int(b.flipped) for b in row_cards]) == self.size: #OK!
                 valid_cards[2] = row_cards
@@ -132,6 +148,13 @@ class Grid:
             
             if sum([int(b.flipped) for b in col_cards]) == self.size: #OK!
                 valid_cards[1] = col_cards
+                combos += 1
+
+            if sum([int(b.flipped) for b in diag_up_cards]) == self.size: # OK!
+                valid_cards[3] = diag_up_cards
+                combos += 1
+            elif sum([int(b.flipped) for b in diag_down_cards]) == self.size:
+                valid_cards[3] = diag_down_cards
                 combos += 1
 
             return valid_cards, combos
@@ -191,6 +214,22 @@ class Scale:
                             self.demon_score += individual_card.value
 
                         s += individual_card.value
+
+class Timer:
+    def __init__(self, duration):
+        self.duration = duration
+        self.start_time = pygame.time.get_ticks()
+
+    def get_p(self):
+        """Returns progress from 0.0 to 1.0"""
+        elapsed = pygame.time.get_ticks() - self.start_time
+        return min(elapsed / self.duration, 1.0)
+
+    def is_finished(self):
+        return self.get_p() >= 1.0
+
+    def val(self, start, end, mode="linear"):
+        return get_live_value(start, end, self.duration, mode=mode, manual_t=self.get_p())
 
 if __name__ == "__main__":
     import pygame
