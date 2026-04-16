@@ -109,7 +109,28 @@ def get_live_value(start, end, duration_ms, mode="linear",current_time=None):
         case "step":
             # Moves in 5 distinct "ticks"
             progress = math.floor(t * 5) / 5
+        case "smooth":
+            # 3t^2 - 2t^3
+            progress = t * t * (3 - 2 * t)
+        case "elastic":
+            p = 0.3 # period
+            progress = math.pow(2, -10 * t) * math.sin((t - p / 4) * (2 * math.pi) / p) + 1
+        case "back_in":
+            s = 1.70158 # "overshoot" amount
+            progress = t * t * ((s + 1) * t - s)
+        case "breathe":
+            # Smooth oscillation using cosine
+            progress = (1 - math.cos(t * math.pi * 2)) / 2
+        case "shake":
+            # Rapidly oscillates 4 times per duration
+            progress = math.sin(t * math.pi * 8)
+        case "swing":
+            # Ping-pong time logic
+            tp = 1.0 - abs(t * 2.0 - 1.0)
+            # Apply a smooth-step to the ping-ponged value
+            progress = tp * tp * (3 - 2 * tp)
         case _:
             progress = t
         
     return start + (end - start) * progress
+
