@@ -1,5 +1,5 @@
 from .BaseScene import Scene
-from Objects import Grid, Scale
+from Objects import Grid, Scale, Timer
 from BaseCard import *
 from HelperCard import *
 
@@ -13,46 +13,58 @@ import pygame
 # note to self: when coding, we must think that this file exists at the "root" of the project ( or where we place our main )
 class GameSession(Scene):
     def __init__(self):
-        self.scale = Scale(20)
-
+        # CORE
         GRID_SIZE = 4
+        self.scale = Scale(20)
         self.grid = Grid(GRID_SIZE)
-
-        normal_val= [1,2,3]
-
-        self.player = Player(deck=BaseCard.deck_creator([18,4,2],normal_val,"player"),helper_cards=helpers,hand=[])
-        self.player.hand_limit = 10
-        self.demons = [
-           Demon("Imp","An annoying low-level demon",BaseCard.deck_creator([16,6,2],normal_val,"demon"))
-           #Abigor(BaseCard.deck_creator([16,6,2],normal_val,"demon"))
-           #Baphomet(BaseCard.deck_creator([16,6,2],normal_val,"demon"))
-           #Zariel(BaseCard.deck_creator([16,6,2],normal_val,"demon"))
-        ]
-
-        #self.SPOOKY = BaseCard.deck_creator([14,8,2],[-1,-2,-3],"spooky")
         self.countdown = 0
+        self.delta_time = 0
+
+        # Players
+        normal_val = [1, 2, 3]
+
+        self.player = Player(
+            deck=BaseCard.deck_creator([18, 4, 2], normal_val, "player"),
+            helper_cards=helpers,
+            hand=[]
+        )
+        self.player.hand_limit = 10
+
+        self.demons = [
+            #Demon("Imp", "An annoying low-level demon", BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
+            #Abigor(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
+            # Baphomet(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
+            # Zariel(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
+        ]
+        # self.SPOOKY = BaseCard.deck_creator([14, 8, 2], [-1, -2, -3], "spooky")
+
+        # STATES
+        self.game_state = {
+            "turn": "PLAYER",
+            "player": self.player,
+            "grid": self.grid,
+            "demon": self.demons[0],
+            "scale": self.scale
+        }
 
         self.data_to_evaluate = None
         '''
         {
             "valid_cards": valid_cards,
             "combos": combos,
-            "player": "player"  # or "demon"
+            player": "player"  # or "demon"
         }
         '''
-
-        self.game_state = { 
-            "turn":"PLAYER",
-            "player":self.player,
-            "grid":self.grid,
-            "demon":self.demons[0],
-            "scale":self.scale
-        }
-
-        # Queue for executing card stuff ig..
         self.helpers_to_eval = []
 
-        self.delta_time = 0
+        # ANIMATION!
+        self.anim = {
+            "fade_in_timer": Timer(1000),
+            "cursor":[0,0],
+            "vignette":[0,0]
+        }
+
+        # Cute assets <3
         BaseCard.load_graphics()
 
     def demon_turn(self):
@@ -149,53 +161,48 @@ class GameSession(Scene):
         return self
     
     def evaluate(self):
-        raw = self.data_to_evaluate
-        #print(f"evaluating {raw['player']} {raw['valid_cards']}")
+        # make the cards execute at the start of evaluation
         for i in self.helpers_to_eval:
             i.play_on_eval(self.game_state)
-            # bruhhh
-
+            
         if self.data_to_evaluate == None:
             print("NOTHING TO EVALUATE!")
-        else:
-            self.scale.evaluate_points(raw['valid_cards'],raw["player"])
-            target = self.demons[0]
+            return 
+        
+        self._resolve_turn()
+        self._clean_helpers()
+    
+    def _resolve_turn(self):
+        raw = self.data_to_evaluate
+        self.scale.evaluate_points(raw['valid_cards'],raw["player"])
+        target = self.demons[0]
+        if raw["player"] == "player":
+            target = self.player
+
+        # if not win..
+        if self.scale.who_won() == None:
             if raw["player"] == "player":
-                target = self.player
-
-            # if not win..
-            if self.scale.who_won() == None:
-                if raw["player"] == "player":
-                    self.game_state['turn'] = 'DEMON'
-                else:
-                    self.game_state['turn'] = 'PLAYER'
+                self.game_state['turn'] = 'DEMON'
             else:
-                self.game_state['turn'] = 'HANG'
+                self.game_state['turn'] = 'PLAYER'
+        else:
+            self.game_state['turn'] = 'HANG'
 
-            # Now, CLEAN!
-            if raw["combos"] > 0:
-                self.grid.replace_cards(Grid.flatten_list(raw['valid_cards'][1:]),target)
+        # Now, CLEAN!
+        if raw["combos"] > 0:
+            self.grid.replace_cards(Grid.flatten_list(raw['valid_cards'][1:]),target)
 
-            self.data_to_evaluate = None
+        self.data_to_evaluate = None
 
-        # Now, I think I could make a "timer" for it...
-        helpers_copy = self.helpers_to_eval.copy()
-        for helper in helpers_copy:
+    def _clean_helpers(self):
+        for helper in self.helpers_to_eval.copy():
             if helper.remove_check(self.game_state):
-                print("OK REMOVE: ",helper)
-                try:
-                    print(f"Cleaning: {helper.name}")
-                    helper.clean_up(self.game_state)
-                except Exception as e:
-                    print(f"ERROR! {helper}",e,)
+                print(f"Cleaning: {helper.name}")
+                helper.clean_up(self.game_state)
                 self.helpers_to_eval.remove(helper)
             else:
                 print("NG: ",helper)
 
-        helpers_copy = [] # just clear...
-
-            #self.helpers_to_eval = []
-            
     def update(self, dt):
         '''
         Called every frame. Returns new State or None.
@@ -216,19 +223,11 @@ class GameSession(Scene):
         self.delta_time += dt
         return None
 
-    def draw(self, screen):
-        '''Called for rendering the scene.'''
-        # clear screen each frame
-        screen.fill((0, 0, 0))
-
-        #region ========================= CARDS =========================
+    def _draw_grid(self,screen):
         cursor_x = self.player.cursor_x
         cursor_y = self.player.cursor_y
         # First, let's layer the parallax.
-        screen.blit(
-            AssetLib.get_sprite('wood'),
-            (0,0)
-        )
+        screen.blit(AssetLib.get_sprite('wood'),(0,0))
         card_surface = pygame.Surface((200,200),flags=pygame.SRCALPHA).convert_alpha()
         card_surface.fill((0,0,0,0))
         
@@ -256,22 +255,47 @@ class GameSession(Scene):
                 
                 card_surface.blit(card_texture,(x*30 + 10,y*40))
 
-        if int(self.delta_time * 4) % 2 == 0:
-            card_surface.blit(AssetLib.get_sprite('cards/select'),(cursor_x*30 + 10,cursor_y*40))
+        # THE CURSOR.... IS CURSED!
+        ct_x = cursor_x*30 + 10
+        ct_y = cursor_y*40
         
+        self.anim["cursor"][0] = lerp(self.anim["cursor"][0], ct_x, 0.2)
+        self.anim["cursor"][1] = lerp(self.anim["cursor"][1], ct_y, 0.2)
+        
+        if abs(self.anim["cursor"][0] - ct_x) < 0.1:
+            self.anim["cursor"][0] = ct_x
+        if abs(self.anim["cursor"][1] - ct_y) < 0.1:
+            self.anim["cursor"][1] = ct_y
+
+        cursor_moving = (self.anim["cursor"][0] != ct_x or 
+                        self.anim["cursor"][1] != ct_y)
+
+        draw_x = int(self.anim["cursor"][0])
+        draw_y = int(self.anim["cursor"][1])
+
+        if cursor_moving or int(self.delta_time * 4) % 2 == 0:
+            card_surface.blit(AssetLib.get_sprite('cards/select'), (draw_x, draw_y))
+
         screen.blit(card_surface,(10,10))
 
-        screen.blit(
-            palette_swap(AssetLib.get_sprite('vignette'),(255,255,255),(0,0,0,0)),
-            (-30,
-            -40))        
-        screen.blit(
-            palette_swap(AssetLib.get_sprite('border'),(255,255,255),(0,0,0,0)),
-            (-30,
-            -40))
-        #endregion ========================= **** =========================
+        vig_x = -40 + (self.anim["cursor"][0] * 0.2)
+        vig_y = -30 + (self.anim["cursor"][1] * 0.2)
+        vignette_sprite = AssetLib.get_sprite('vignette')
+   
+        screen.blit(vignette_sprite, (vig_x,vig_y))
+
+        border_sprite = AssetLib.get_sprite('border')
+        pulse = get_live_value(-15, 10, 10000, "breathe")
         
-        #region ================= RIGHT BOX =========================
+        # Center-scaled blit following the cursor
+        scaled_border = pygame.transform.scale(border_sprite, 
+            (border_sprite.get_width() + int(pulse), 
+             border_sprite.get_height() + int(pulse)))
+             
+        screen.blit(scaled_border,
+            (-30 - pulse/2, -40 - pulse/2))
+
+    def _draw_book(self,screen):
         book = AssetLib.get_sprite("book") 
         # text can start at x=20
         book.blit(text_to_surface("LESSONS IN MAGIC","felipa-Regular",12),(30,5))
@@ -303,19 +327,37 @@ class GameSession(Scene):
         scale_surface.blit(human_scale,human_scale.get_rect(center=human_scale_pos))
         scale_surface.blit(demon_scale,demon_scale.get_rect(center=demon_scale_pos))
 
-
-
         scale_surface.blit(scale_mid,scale_mid.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height() // 2 + 10)))
         scale_surface.blit(delta_text,delta_text.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height()- 5)))
 
-        
-
         book.blit(scale_surface,(20,50))
-
         screen.blit(book,(165,0))
-        #screen.blit(palette_swap(AssetLib.get_sprite('right_vig'),(255,255,255),(0,0,0,0)),(165,0))  
-        #endregion ========================= **** =========================
+
+        offset = get_live_value(0,5,5000,"breathe")
+        rv = AssetLib.get_sprite('right_vig')
+        screen.blit(pygame.transform.scale(rv,(rv.get_size()[0]+offset,rv.get_size()[1]+offset)),(165-offset/2,0-offset/2))
+
+    def draw(self, screen):
+        '''Called for rendering the scene.'''
+        # clear screen each frame
+        screen.fill((0, 0, 0))
+
+        self._draw_grid(screen)
+        self._draw_book(screen)
+        
         if self.scale.who_won() == "player":
             screen.blit(text_to_surface("You Win!"),(100,60))   
         elif self.scale.who_won() == "demon":
             screen.blit(text_to_surface("You Lose!"),(100,60))
+        
+        # ========= The part for fading lol ======== #
+        
+        if not self.anim['fade_in_timer'].is_finished():
+            dithers = [0,7,4,3,6,1,5,2]
+            p = self.anim['fade_in_timer'].get_p()
+            index = min(int(p * len(dithers)), len(dithers) - 1)
+            cf = dithers[index]
+            if cf == 0:
+                screen.fill((0,0,0))
+            else:
+                screen.blit(AssetLib.get_sprite(f"dither_screen{cf}"),(0,0))

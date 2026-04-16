@@ -2,16 +2,19 @@ import pygame
 from GraphicHelper import *
 from .BaseScene import Scene
 from .GameSession import GameSession
+from Objects import Timer
 
 class TitleScreen(Scene):
     def __init__(self):
         super().__init__()
         self.cursor = 0
         self.change_scenes = False
+        self.fade_in_timer = Timer(1000)
+        self.fade_out_timer = None
 
     def update(self, dt):        
         if self.change_scenes:
-            if not self.anim_manager.animations:
+            if self.fade_out_timer != None and self.fade_out_timer.is_finished():
                 return GameSession()
 
         return super().update(dt)
@@ -27,6 +30,7 @@ class TitleScreen(Scene):
                     match self.cursor:
                         case 0:
                             self.change_scenes = True
+                            self.fade_out_timer = Timer(1000)
                         case 1:
                             import subprocess, sys, os
                             subprocess.Popen([
@@ -57,18 +61,32 @@ class TitleScreen(Scene):
             screen.blit(value, text_rect)
             
             if index == self.cursor:
-                size = 5
+                size = get_live_value(15,20,1000,"breathe")
                 
                 img_left = pygame.transform.scale(AssetLib.get_sprite('human_token'), (size, size))
                 img_right = pygame.transform.scale(AssetLib.get_sprite('demon_token'), (size, size))
                 
-                rect_left = img_left.get_rect(center=(text_rect.left - 20, text_rect.centery))
-                rect_right = img_right.get_rect(center=(text_rect.right + 20, text_rect.centery))
+                rect_left = img_left.get_rect(center=(text_rect.left - 15, text_rect.centery))
+                rect_right = img_right.get_rect(center=(text_rect.right + 15, text_rect.centery))
 
                 screen.blit(img_left, rect_left)
                 screen.blit(img_right, rect_right)
-    
-        if self.change_scenes and not self.anim_manager.animations:
+
+        dithers = [2,5,1,6,3,4,7]
+        if self.change_scenes  and self.fade_out_timer.is_finished():
             screen.fill((0,0,0))
-        
+        else:
+            if self.fade_out_timer != None:
+                p = self.fade_out_timer.get_p()
+                index = min(int(p * len(dithers)), len(dithers) - 1)
+                cf = dithers[index]
+                screen.blit(AssetLib.get_sprite(f"dither_screen{cf}"),(0,0))
+
+        if not self.fade_in_timer.is_finished():
+            p = self.fade_in_timer.get_p()
+            index = min(int(p * len(dithers)), len(dithers) - 1)
+            dithers.reverse()
+            cf = dithers[index]
+            screen.blit(AssetLib.get_sprite(f"dither_screen{cf}"),(0,0))
+
         super().draw(screen)
