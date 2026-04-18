@@ -125,6 +125,11 @@ class Grid:
         return result
 
     def select_attempt(self,x,y):
+        '''
+        flip the card, then gives you related coords.
+        return: list of cards for points, and combos
+        '''
+        
         try:
             selected = self.get_item(x,y)
             if selected.flipped or selected.lock: return [], 0
@@ -177,7 +182,6 @@ class Grid:
         self.set_tiles_from_coords(coords,new_cards)
 
 class Scale:
-    
     def __init__(self, ts=0):
         self.player_score = 0
         self.demon_score = 0

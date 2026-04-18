@@ -2,11 +2,8 @@ import pygame
 import math
 
 class AssetLib:
-    textures = {
-    }
-    
-    fonts = {
-    }
+    textures = {}
+    fonts = {}
 
     @classmethod
     def get_sprite(cls, key):
@@ -86,6 +83,7 @@ def get_live_value(start, end, duration_ms, mode="linear",current_time=None):
     '''
     Function to get value based on.. well, time!
     used for animating stuff :P
+    options:linear, yoyo, ease_out, ease_in, bounce, step, smooth, elastic, back_in, breathe, shake, swing
     '''
     if current_time == None:
         current_time = pygame.time.get_ticks()

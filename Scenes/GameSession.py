@@ -61,7 +61,9 @@ class GameSession(Scene):
         self.anim = {
             "fade_in_timer": Timer(1000),
             "cursor":[0,0],
-            "vignette":[0,0]
+            "vignette":[0,0],
+            "card_flip": 0.5,
+            "card_flip_timer":None
         }
 
         # Cute assets <3
@@ -79,6 +81,7 @@ class GameSession(Scene):
                         "combos": combos,
                         "player": "demon"  # or "demon"
                     }
+                    self.anim['card_flip_timer'] = Timer(self.anim['card_flip']*1000)
             case "ACTION":
                 print(f"The demon uses {data}")
                 if data.verify(self.game_state):
@@ -91,7 +94,6 @@ class GameSession(Scene):
         
         self.game_state['turn'] = 'EVALUATE'
 
-    #########################################################
     def enter(self):
         '''
         Called once when entering this state.
@@ -112,11 +114,6 @@ class GameSession(Scene):
         self.grid.set_tiles_from_coords(
             grid_coords,select_cards
         )
-        '''
-        for _ in range(16):
-            self.player.hand.append(Lock())
-        pass
-        '''
 
     def exit(self):
         '''
@@ -126,7 +123,6 @@ class GameSession(Scene):
         pass
     
     def handle_input(self, events):
-        ''' Process keys. Returns 'self' or a NEW Scene.'''
         for event in events:
             if self.game_state['turn'] == 'PLAYER' and event.type == pygame.KEYDOWN:
 
@@ -152,6 +148,7 @@ class GameSession(Scene):
                         }
 
                         self.game_state['turn'] = 'EVALUATE'
+                        self.anim['card_flip_timer'] = Timer(self.anim['card_flip']*1000)
                         if self.player.picked_helper == False and len(self.player.hand) < self.player.hand_limit:
                             print("Giving player...")
                             self.player.hand.append(self.player.choose_helper())
@@ -168,6 +165,10 @@ class GameSession(Scene):
         return self
     
     def evaluate(self):
+        '''
+        this evaluates the card that has picked AND run helper's commands :3c
+        '''
+        
         # make the cards execute at the start of evaluation
         for i in self.helpers_to_eval:
             i.play_on_eval(self.game_state)
@@ -182,6 +183,9 @@ class GameSession(Scene):
         self._clean_helpers()
     
     def _resolve_turn(self):
+        '''
+        help clearing the scores and grid
+        '''
         raw = self.data_to_evaluate
         self.scale.evaluate_points(raw['valid_cards'],raw["player"])
         target = self.demons[0]
@@ -222,7 +226,11 @@ class GameSession(Scene):
                 self.demon_turn()
 
             case "EVALUATE": # The game checker each turn...
-                self.evaluate()
+                # Now, I think I'll cheat the card flip animation here.
+                if self.countdown >= 0.5:
+                    self.evaluate()
+                    self.countdown = 0
+                self.countdown += dt
 
             case "HANG":
                 if self.countdown >= 2:
@@ -245,24 +253,62 @@ class GameSession(Scene):
             for x in range(self.grid.size):
                 card = self.grid.grid[y][x]
                 card_texture = BaseCard.base_sprite_front
-                if card.owner == "spooky":
-                    card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
-
-                if card.flipped or "Peek" in card.effects:
-                    card_texture = card_texture.copy()
-                    text = text_to_surface(str(card.value),'AlmendraSC-Regular',32)
-                    ctr = card_texture.get_rect()
-                    card_texture.blit(text, text.get_rect(center=(ctr.centerx,ctr.centery-2)))
-                    if card.owner == "demon":
-                        card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))
-                else:
-                    card_texture = BaseCard.base_sprite_back
-                    
-                if card.lock:
-                    card_texture = AssetLib.get_sprite('cards/lock')
-                    card_texture = palette_swap(card_texture,(255,255,255),(205,90,150))
+                # Here, I'll draw the card flipping...
+                if self.data_to_evaluate != None and card in self.data_to_evaluate["valid_cards"]:
+                    # it's freshly picked! Time to animate >:3
+                    w,h = card_texture.get_size()
                 
-                card_surface.blit(card_texture,(x*30 + 10,y*40))
+                    prog = self.anim['card_flip_timer'].get_p()
+                    
+                    if prog < self.anim['card_flip'] - 0.05:
+                        card_texture = BaseCard.base_sprite_back
+                        flip_p = prog / (self.anim['card_flip'] - 0.05)
+                        scale_w = max(2, round(lerp(w, 2, flip_p)))
+                        
+                    elif prog > self.anim['card_flip'] + 0.05:
+                        card_texture = card_texture.copy()
+                        text = text_to_surface(str(card.value),'AlmendraSC-Regular',32)
+                        ctr = card_texture.get_rect()
+                        card_texture.blit(text, text.get_rect(center=(ctr.centerx,ctr.centery-2)))
+                        
+                        if card.owner == "demon":
+                            card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))
+                            
+                        flip_p = (prog- self.anim['card_flip'] + 0.05) / (self.anim['card_flip'] - 0.05)
+                        scale_w = max(2, round(lerp(2, w, flip_p)))
+                    else:
+                        card_texture = BaseCard.base_sprite_back
+                        scale_w = 2
+                        
+                    card_texture = pygame.transform.scale(card_texture,(scale_w,h))
+                    slot_x = x * 30 + 10
+                    slot_y = y * 40
+                    draw_x = slot_x + (w - scale_w) // 2
+                    card_surface.blit(card_texture, (draw_x, slot_y))
+    
+                    if self.anim['card_flip_timer'].is_finished():
+                        self.anim['card_flip_timer'] = None
+                else:
+                    # just do the ol' boring stuff...        
+                    if card.owner == "spooky":
+                        card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
+
+                    if card.flipped or "Peek" in card.effects:
+                        card_texture = card_texture.copy()
+                        text = text_to_surface(str(card.value),'AlmendraSC-Regular',32)
+                        ctr = card_texture.get_rect()
+                        card_texture.blit(text, text.get_rect(center=(ctr.centerx,ctr.centery-2)))
+                        
+                        if card.owner == "demon":
+                            card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))
+                    else:
+                        card_texture = BaseCard.base_sprite_back
+                        
+                    if card.lock:
+                        card_texture = AssetLib.get_sprite('cards/lock')
+                        card_texture = palette_swap(card_texture,(255,255,255),(205,90,150))
+                
+                    card_surface.blit(card_texture,(x*30 + 10,y*40))
 
         # THE CURSOR.... IS CURSED!
         ct_x = cursor_x*30 + 10
@@ -345,7 +391,7 @@ class GameSession(Scene):
         scale_surface.blit(scale_mid,scale_mid.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height() // 2 + 10)))
         scale_surface.blit(delta_text,delta_text.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height()- 5)))
 
-        book.blit(scale_surface,(20,50))
+        book.blit(scale_surface,(30,70))
         screen.blit(book,(165,0))
 
         offset = get_live_value(0,5,5000,"breathe")
