@@ -185,7 +185,10 @@ class Scale:
     def __init__(self, ts=0):
         self.player_score = 0
         self.demon_score = 0
-    
+        
+        self.player_scored = 0
+        self.demon_scored = 0
+        
         self.threshold = ts
 
     def get_delta_score(self):
@@ -201,23 +204,27 @@ class Scale:
 
     def evaluate_points(self,raw_cards,player):
         # might be the stupidest way to do ts
+        self.player_scored = 0
+        self.demon_scored = 0
         for i in raw_cards:
             if isinstance(i,BaseCard):
                 if player.lower() == "player":
                     self.player_score += i.value
+                    self.player_scored += i.value
                 elif player.lower() == "demon":
                     self.demon_score += i.value
+                    self.demon_scored += i.value
             # or maybe it's actually an array of cards!
             else:
                 if len(i) > 0:
-                    s = 0
                     for individual_card in i:
                         if player.lower() == "player":
                             self.player_score += individual_card.value
+                            self.player_scored += individual_card.value
+                        
                         elif player.lower() == "demon":
                             self.demon_score += individual_card.value
-
-                        s += individual_card.value
+                            self.demon_scored += individual_card.value
 
 class Timer:
     def __init__(self, duration):

@@ -1,5 +1,4 @@
 import pygame
-import random
 
 from Scenes.TitleScreen import TitleScreen
 
@@ -10,7 +9,6 @@ class GameApp:
         '''
         pygame.init() # Inititalize the game!
         self.render_resolution = (320,180)
-        self.screen_resolution = (640,480)
 
         # The actual screen that the user will see.
         self.screen = pygame.display.set_mode(self.render_resolution, pygame.SCALED, vsync=1)
@@ -55,6 +53,7 @@ class GameApp:
         pygame.quit()
 
 if  __name__ == '__main__':
+
     instance = GameApp()
     instance.current_scene = TitleScreen()
     instance.run()

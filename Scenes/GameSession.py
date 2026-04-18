@@ -7,8 +7,9 @@ from Players import *
 from GraphicHelper import *
 
 import random
-import math
 import pygame
+
+from TkStats import log_to_csv
 
 # note to self: when coding, we must think that this file exists at the "root" of the project ( or where we place our main )
 class GameSession(Scene):
@@ -19,7 +20,8 @@ class GameSession(Scene):
         self.grid = Grid(GRID_SIZE)
         self.countdown = 0
         self.delta_time = 0
-
+        self.turn_count = 0
+        
         # Players
         normal_val = [1, 2, 3]
 
@@ -61,7 +63,6 @@ class GameSession(Scene):
         self.anim = {
             "fade_in_timer": Timer(1000),
             "cursor":[0,0],
-            "vignette":[0,0],
             "card_flip": 0.5,
             "card_flip_timer":None
         }
@@ -159,10 +160,29 @@ class GameSession(Scene):
                     if len(self.player.hand) != 0 and self.player.hand[0].verify(self.game_state):
                         self.player.picked_helper = True
                         card = self.player.hand.pop(0)
+                        # LOG: helper card usage
+                        log_to_csv("data/helper_cards.csv", [card.name, 1])
+                        
                         card.play(self.game_state)
                         self.helpers_to_eval.append(card) 
             self.player.grid_move = False         
         return self
+    
+    def log_data(self):
+        # LOG DATA...
+        # Board Control
+        # LOG: board control
+        flatten_grid = Grid.flatten_list(self.grid.grid)
+        player_count = len([c for c in flatten_grid if c.owner == "player"])
+        demon_count = len([c for c in flatten_grid if c.owner == "demon"])
+        log_to_csv("data/board_cards.csv", [self.turn_count, player_count, demon_count])
+        
+        # LOG: board value range
+        board_value = sum([c.value for c in flatten_grid])
+        log_to_csv("data/board_values.csv", [board_value])
+        log_to_csv("data/points_diff.csv", [self.scale.get_delta_score()])
+        
+        self.turn_count += 1
     
     def evaluate(self):
         '''
@@ -188,16 +208,20 @@ class GameSession(Scene):
         '''
         raw = self.data_to_evaluate
         self.scale.evaluate_points(raw['valid_cards'],raw["player"])
-        target = self.demons[0]
+        target = self.demons[0] # who cleared the grid?
+        
         if raw["player"] == "player":
             target = self.player
+            log_to_csv("data/points_gained.csv",[self.scale.player_scored])
 
+        self.log_data()
         # if not win..
         if self.scale.who_won() == None:
             if raw["player"] == "player":
                 self.game_state['turn'] = 'DEMON'
             else:
                 self.game_state['turn'] = 'PLAYER'
+            
         else:
             self.game_state['turn'] = 'HANG'
 
@@ -328,8 +352,9 @@ class GameSession(Scene):
         draw_x = int(self.anim["cursor"][0])
         draw_y = int(self.anim["cursor"][1])
 
-        if cursor_moving or int(self.delta_time * 4) % 2 == 0:
-            card_surface.blit(AssetLib.get_sprite('cards/select'), (draw_x, draw_y))
+        if self.game_state['turn'] == "PLAYER":
+            if cursor_moving or int(self.delta_time * 4) % 2 == 0:
+                card_surface.blit(AssetLib.get_sprite('cards/select'), (draw_x, draw_y))
 
         screen.blit(card_surface,(10,10))
 
@@ -353,9 +378,11 @@ class GameSession(Scene):
     def _draw_book(self,screen):
         book = AssetLib.get_sprite("book") 
         # text can start at x=20
-        book.blit(text_to_surface("LESSONS IN MAGIC","felipa-Regular",12),(30,5))
+        book.blit(text_to_surface(f"{self.demons[0].name.upper():^30}","felipa-Regular",12),(30,5))
         book.blit(text_to_surface("------------------------------------------","felipa-Regular",10),(20,15))
-        book.blit(text_to_surface("Arrow keys to move cursor.","Tiny5-Regular",10),(20,20))
+        # OK! the text can start at most x=20,y=20!
+        for index,value in enumerate(basic_text_wrap(self.demons[0].description,28)):
+            book.blit(text_to_surface(value,"Tiny5-Regular",10),(20,22 + (index*8)))
         
         # Let's add the scales.
         scale_mid = AssetLib.get_sprite('scale_mid').convert_alpha()
@@ -391,7 +418,7 @@ class GameSession(Scene):
         scale_surface.blit(scale_mid,scale_mid.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height() // 2 + 10)))
         scale_surface.blit(delta_text,delta_text.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height()- 5)))
 
-        book.blit(scale_surface,(30,70))
+        book.blit(scale_surface,(30,75))
         screen.blit(book,(165,0))
 
         offset = get_live_value(0,5,5000,"breathe")

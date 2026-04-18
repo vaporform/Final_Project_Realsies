@@ -58,7 +58,6 @@ class Demon(BasePlayer):
         self.name = name
         self.description = description
         self.aggression = 0.0
-        self.effect_pool = []
         super().__init__(deck,hand)
     
     def decide(self,grid: Grid): # Method Overriding!

@@ -26,6 +26,15 @@ class TitleScreen(Scene):
                     self.cursor -= 1
                 elif event.key == pygame.K_DOWN and self.cursor != 2:
                     self.cursor += 1
+                elif event.key == pygame.K_r and self.cursor == 1:
+                    # reset data!
+                    from TkStats import nuke_csv
+                    nuke_csv("data/helper_cards.csv", ["card_name", "times_played"])
+                    nuke_csv("data/board_cards.csv", ["turn", "player_cards", "demon_cards"])
+                    nuke_csv("data/board_values.csv", ["board_value"])
+                    nuke_csv("data/points_gained.csv", ["points_gained"])
+                    nuke_csv("data/points_diff.csv", ["points_diff"])
+                    print("############## CLEARED DATA! #############")
                 elif event.key == pygame.K_SPACE:
                     match self.cursor:
                         case 0:
@@ -40,6 +49,7 @@ class TitleScreen(Scene):
                             ])
                         case 2:
                             pygame.quit()
+                
         return self
 
     def draw(self, screen: pygame.Surface):

@@ -132,3 +132,20 @@ def get_live_value(start, end, duration_ms, mode="linear",current_time=None):
         
     return start + (end - start) * progress
 
+def basic_text_wrap(text, char_lim):
+    # very basic yes
+    words = text.split()
+    lines = []
+    line = ''
+    
+    for word in words:
+        if len(line) + len(word) + 1 <= char_lim:
+            line += word + ' '
+        else:
+            # over ze limit!
+            lines.append(line.strip())
+            line = word + ' '
+    
+    # leftover
+    lines.append(line.strip())
+    return lines
