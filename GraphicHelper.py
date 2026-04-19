@@ -4,17 +4,15 @@ import math
 class AssetLib:
     textures = {}
     fonts = {}
-
+    cache = {}
+    
     @classmethod
     def get_sprite(cls, key):
         if key not in cls.textures.keys():
-            print(f"TEXTURE NOT FOUND ({key})! ATTEMPTING TO LOAD FROM DISK!")
+            #print(f"TEXTURE NOT FOUND ({key})! ATTEMPTING TO LOAD FROM DISK!")
             try:
                 full_path = f"assets/sprites/{key}.png"
-                surface = pygame.image.load(full_path)
-                # Only convert_alpha() if display is initialized
-                if pygame.display.get_surface() is not None:
-                    surface = surface.convert_alpha()
+                surface = pygame.image.load(full_path).convert_alpha()
                 cls.textures[key] = surface
             except:
                 print("TEXTURE DNE!",key)
@@ -22,7 +20,21 @@ class AssetLib:
                     AssetLib.get_sprite('placeholder')
                 cls.textures[key] = cls.textures['placeholder']
         return cls.textures[key]
+
+    @classmethod
+    def add_to_cache(cls, key, surf):
+        cls.cache[key] = surf
     
+    @classmethod
+    def get_cache(cls,key):
+        if key in cls.cache.keys():
+            return cls.cache[key]
+        return None
+    
+    @classmethod
+    def clear_cache(cls):
+        cls.cache = {}
+        
     @classmethod
     def get_font(cls,key,size):
         if f"{key}{size}" not in cls.fonts.keys():
@@ -38,6 +50,11 @@ class AssetLib:
                 cls.fonts[f"{key}{size}"] = cls.fonts['test16']
         return cls.fonts[f"{key}{size}"]
     
+    @classmethod
+    def preload_sprites(cls,names):
+        for name in names:
+            cls.get_sprite(name)
+        
     @staticmethod
     def load_graphics(image_path:dict):
         new = {}
@@ -45,7 +62,7 @@ class AssetLib:
             new[i] = pygame.image.load(v).convert_alpha()
         return new
 
-def palette_swap(surf, old_c, new_c):
+def palette_swap(surf, old_c, new_c):        
     img_copy = pygame.Surface(surf.get_size(),pygame.SRCALPHA)
     img_copy.fill(new_c)
 
@@ -56,10 +73,16 @@ def palette_swap(surf, old_c, new_c):
     return img_copy
 
 def text_to_surface(text, font_name='test', size=16, color=(0,0,0), outline_width=0,outline_color=(255,255,255)):
+    # sneaky ahh
+    cache_key = f'{text}{font_name}{size}{color}{outline_width}{outline_color}'
+    if cache_key in AssetLib.cache.keys():
+        return AssetLib.get_cache(cache_key)
+    
     font = AssetLib.get_font(font_name,size)
 
     main_surface = font.render(str(text),False,color)
     if outline_width <= 0:
+        AssetLib.add_to_cache(cache_key,main_surface)
         return main_surface
     
     outline_surface = font.render(str(text),False,outline_color)
@@ -71,6 +94,7 @@ def text_to_surface(text, font_name='test', size=16, color=(0,0,0), outline_widt
         canvas.blit(outline_surface, (outline_width + x * outline_width, outline_width + y * outline_width))
     
     canvas.blit(main_surface, (outline_width, outline_width))
+    AssetLib.add_to_cache(cache_key,canvas)
     return canvas
 
 def lerp(start,end,amount):

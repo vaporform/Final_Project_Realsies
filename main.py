@@ -56,6 +56,7 @@ if  __name__ == '__main__':
 
     instance = GameApp()
     instance.current_scene = TitleScreen()
+    #instance.current_scene = D1()
     instance.run()
 
 

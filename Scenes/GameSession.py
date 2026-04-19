@@ -13,7 +13,7 @@ from TkStats import log_to_csv
 
 # note to self: when coding, we must think that this file exists at the "root" of the project ( or where we place our main )
 class GameSession(Scene):
-    def __init__(self):
+    def __init__(self,log_data_path=None,next_scene=None):
         # CORE
         GRID_SIZE = 4
         self.scale = Scale(20)
@@ -21,6 +21,7 @@ class GameSession(Scene):
         self.countdown = 0
         self.delta_time = 0
         self.turn_count = 0
+        self.pending_helper = None
         
         # Players
         normal_val = [1, 2, 3]
@@ -30,22 +31,28 @@ class GameSession(Scene):
             helper_cards=helpers,
             hand=[]
         )
-        self.player.hand_limit = 10
+        self.player_hand_cursor = 0
+        
+        self.player.hand_limit = 7
 
+        self.demon = Imp(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"),[Lock])
+        '''
         self.demons = [
             #Demon("Imp", "An annoying low-level demon", BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
             #Abigor(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
             # Baphomet(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
             #Zariel(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
-            Imp(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"),[Lock, TwoTime])
+            Imp(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"),[Lock])
         ]
-
+        '''
+        
+        self.log_data_path = log_data_path
         # STATES
         self.game_state = {
             "turn": "PLAYER",
             "player": self.player,
             "grid": self.grid,
-            "demon": self.demons[0],
+            "demon": self.demon,
             "scale": self.scale
         }
 
@@ -60,18 +67,31 @@ class GameSession(Scene):
         self.helpers_to_eval = []
 
         # ANIMATION!
+        self.change_scenes = False
+        self.next_scene = next_scene
+            
         self.anim = {
             "fade_in_timer": Timer(1000),
+            "fade_out_timer":None,
             "cursor":[0,0],
+            "hand_cursor":0,
             "card_flip": 0.5,
-            "card_flip_timer":None
+            "card_flip_timer":None,
+            "hang_timer": None
         }
 
         # Cute assets <3
         BaseCard.load_graphics()
+        
+        AssetLib.preload_sprites([
+            "wood", "book", "border", "vignette", "right_vig",
+            "cards/select", "cards/lock",
+            "human_token", "demon_token", "scale_mid", "plate"
+        ])
+        
 
     def demon_turn(self):
-        choice_type, data = self.demons[0].decide(self.grid)
+        choice_type, data = self.demon.decide(self.grid)
         match choice_type:
             case "CARD":
                 x,y= self.grid.get_coords_from_object(data)
@@ -103,7 +123,7 @@ class GameSession(Scene):
         '''
         # Now, pick cards from it equally.
         amount = (self.grid.size**2)//2
-        select_cards = self.player.choose_and_remove(amount) + self.demons[0].choose_and_remove(amount)
+        select_cards = self.player.choose_and_remove(amount) + self.demon.choose_and_remove(amount)
         
         random.shuffle(select_cards)
         grid_coords = self.grid.get_all_coords()
@@ -125,46 +145,83 @@ class GameSession(Scene):
     
     def handle_input(self, events):
         for event in events:
-            if self.game_state['turn'] == 'PLAYER' and event.type == pygame.KEYDOWN:
-
-                keys = pygame.key.get_pressed()
-                self.player.grid_move = any([
+            if self.game_state['turn'] != 'PLAYER' or event.type != pygame.KEYDOWN:
+                continue
+            keys = pygame.key.get_pressed()
+            self.player.grid_move = any([
                     keys[pygame.K_UP],
                     keys[pygame.K_DOWN],
                     keys[pygame.K_LEFT],
                     keys[pygame.K_RIGHT]
                 ])
-                self.player.get_pos_in_grid(events, self.grid.size)
-                ##############
+            
+            self.player.get_pos_in_grid(events, self.grid.size)
+        
+            if self.pending_helper is not None:
                 if event.key == pygame.K_SPACE:
-                    # try to select the BaseCard
-                    valid_cards, combos = self.grid.select_attempt(self.player.cursor_x,self.player.cursor_y)
-                    print("valid: ",valid_cards)
-                    if len(valid_cards) != 0:
-                        # OK! Pend the data to evaluate_points
-                        self.data_to_evaluate = {
-                            "valid_cards": valid_cards,
-                            "combos": combos,
-                            "player": "player"  # or "demon"
-                        }
-
-                        self.game_state['turn'] = 'EVALUATE'
-                        self.anim['card_flip_timer'] = Timer(self.anim['card_flip']*1000)
-                        if self.player.picked_helper == False and len(self.player.hand) < self.player.hand_limit:
-                            print("Giving player...")
-                            self.player.hand.append(self.player.choose_helper())
-
-                        self.player.picked_helper = False
-
-                if event.key == pygame.K_0:
-                    if len(self.player.hand) != 0 and self.player.hand[0].verify(self.game_state):
+                    if self.pending_helper.verify(self.game_state):
+                        log_to_csv(f"data/{self.log_data_path}/helper_cards.csv", [self.pending_helper.name, 1])
+                        self.pending_helper.play(self.game_state)
+                        self.helpers_to_eval.append(self.pending_helper)
+                        self.player.hand.remove(self.pending_helper)
                         self.player.picked_helper = True
-                        card = self.player.hand.pop(0)
-                        # LOG: helper card usage
-                        log_to_csv("data/helper_cards.csv", [card.name, 1])
-                        
-                        card.play(self.game_state)
-                        self.helpers_to_eval.append(card) 
+
+                    self.pending_helper = None
+                    continue
+                
+                if self.player.hand_cursor != -1:
+                    self.pending_helper = None
+                continue
+            
+           # Now, below here will be accessible if the key is a space :P
+            if event.key != pygame.K_SPACE:
+               continue
+            
+            # If a helper is selected...
+            if self.player.hand_cursor != -1:
+                card = self.player.hand[self.player.hand_cursor]
+                if card.needs_target:
+                    self.anim['hand_cursor_index'] = self.player.hand_cursor
+                    self.pending_helper = card
+                    self.player.hand_cursor = -1   # return to main grid
+                    continue
+                
+                if card.verify(self.game_state):
+                    self.player.picked_helper = True
+                    card = self.player.hand.pop(self.player.hand_cursor)
+                    if self.log_data_path != None:
+                        log_to_csv(f"data/{self.log_data_path}/helper_cards.csv", [card.name, 1])
+                    
+                    card.play(self.game_state)
+                    self.helpers_to_eval.append(card)
+
+                    if self.player.hand_cursor >= len(self.player.hand):
+                        self.player.hand_cursor = len(self.player.hand) - 1
+                    if len(self.player.hand) == 0:
+                        self.player.hand_cursor = -1
+                continue
+            
+            # Normal grid stuff
+            # try to select the BaseCard
+            valid_cards, combos = self.grid.select_attempt(self.player.cursor_x,self.player.cursor_y)
+            print("valid: ",valid_cards)
+            if len(valid_cards) != 0:
+                # OK! Pend the data to evaluate_points
+                self.data_to_evaluate = {
+                    "valid_cards": valid_cards,
+                    "combos": combos,
+                    "player": "player"  # or "demon"
+                }
+
+                self.game_state['turn'] = 'EVALUATE'
+                self.anim['card_flip_timer'] = Timer(self.anim['card_flip']*1000)
+                
+                if not self.player.picked_helper and len(self.player.hand) < self.player.hand_limit:
+                    print("Giving player...")
+                    self.player.hand.append(self.player.choose_helper())
+
+                self.player.picked_helper = False
+
             self.player.grid_move = False         
         return self
     
@@ -175,12 +232,12 @@ class GameSession(Scene):
         flatten_grid = Grid.flatten_list(self.grid.grid)
         player_count = len([c for c in flatten_grid if c.owner == "player"])
         demon_count = len([c for c in flatten_grid if c.owner == "demon"])
-        log_to_csv("data/board_cards.csv", [self.turn_count, player_count, demon_count])
+        log_to_csv(f"data/{self.log_data_path}/board_cards.csv", [self.turn_count, player_count, demon_count])
         
         # LOG: board value range
         board_value = sum([c.value for c in flatten_grid])
-        log_to_csv("data/board_values.csv", [board_value])
-        log_to_csv("data/points_diff.csv", [self.scale.get_delta_score()])
+        log_to_csv(f"data/{self.log_data_path}/board_values.csv", [board_value])
+        log_to_csv(f"data/{self.log_data_path}/points_diff.csv", [self.scale.get_delta_score()])
         
         self.turn_count += 1
     
@@ -206,15 +263,19 @@ class GameSession(Scene):
         '''
         help clearing the scores and grid
         '''
+        
         raw = self.data_to_evaluate
         self.scale.evaluate_points(raw['valid_cards'],raw["player"])
-        target = self.demons[0] # who cleared the grid?
+        target = self.demon # who cleared the grid?
         
         if raw["player"] == "player":
             target = self.player
-            log_to_csv("data/points_gained.csv",[self.scale.player_scored])
+            if self.log_data_path != None:
+                log_to_csv(f"data/{self.log_data_path}/points_gained.csv",[self.scale.player_scored])
 
-        self.log_data()
+        if self.log_data_path != None: 
+            self.log_data()
+            
         # if not win..
         if self.scale.who_won() == None:
             if raw["player"] == "player":
@@ -223,6 +284,10 @@ class GameSession(Scene):
                 self.game_state['turn'] = 'PLAYER'
             
         else:
+            # we are so done bro
+            self.change_scenes = True
+            if self.anim['hang_timer'] == None:
+                self.anim['hang_timer'] = Timer(5000)
             self.game_state['turn'] = 'HANG'
 
         # Now, CLEAN!
@@ -245,22 +310,28 @@ class GameSession(Scene):
         Called every frame. Returns new State or None.
         Move things, check timers.
         '''
+        if self.anim['fade_out_timer'] != None and self.anim['fade_out_timer'].is_finished():
+            if self.change_scenes:
+                if self.next_scene == None:
+                    return GameSession()
+                else:
+                    return self.next_scene
+            
         match self.game_state["turn"]:
             case "DEMON":
                 self.demon_turn()
 
             case "EVALUATE": # The game checker each turn...
                 # Now, I think I'll cheat the card flip animation here.
-                if self.countdown >= 0.5:
+                if self.anim['card_flip_timer'] == None:
                     self.evaluate()
-                    self.countdown = 0
-                self.countdown += dt
 
             case "HANG":
-                if self.countdown >= 2:
-                    print("Aye aye!")
-                    return GameSession()
-                self.countdown += dt
+                if self.anim['hang_timer'] is not None and self.anim['hang_timer'].is_finished():
+                    if self.anim['fade_out_timer'] == None:
+                        self.anim['fade_out_timer'] = Timer(1000)
+                pass
+            
         self.delta_time += dt
         return None
 
@@ -278,7 +349,7 @@ class GameSession(Scene):
                 card = self.grid.grid[y][x]
                 card_texture = BaseCard.base_sprite_front
                 # Here, I'll draw the card flipping...
-                if self.data_to_evaluate != None and card in self.data_to_evaluate["valid_cards"]:
+                if self.data_to_evaluate is not None and card in self.data_to_evaluate["valid_cards"]:
                     # it's freshly picked! Time to animate >:3
                     w,h = card_texture.get_size()
                 
@@ -297,7 +368,8 @@ class GameSession(Scene):
                         
                         if card.owner == "demon":
                             card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))
-                            
+                        elif card.owner == "spooky":
+                            card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
                         flip_p = (prog- self.anim['card_flip'] + 0.05) / (self.anim['card_flip'] - 0.05)
                         scale_w = max(2, round(lerp(2, w, flip_p)))
                     else:
@@ -313,48 +385,53 @@ class GameSession(Scene):
                     if self.anim['card_flip_timer'].is_finished():
                         self.anim['card_flip_timer'] = None
                 else:
-                    # just do the ol' boring stuff...        
-                    if card.owner == "spooky":
-                        card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
-
+                    # just do the ol' boring stuff...    
                     if card.flipped or "Peek" in card.effects:
                         card_texture = card_texture.copy()
+                        if "Peek" in card.effects:
+                            card_texture = palette_swap(card_texture,(255,255,255),(255,200,35))
+                        elif card.owner == "demon":
+                            card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))    
+                        elif card.owner == "spooky":
+                            card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
+                            
+                        
                         text = text_to_surface(str(card.value),'AlmendraSC-Regular',32)
                         ctr = card_texture.get_rect()
-                        card_texture.blit(text, text.get_rect(center=(ctr.centerx,ctr.centery-2)))
                         
-                        if card.owner == "demon":
-                            card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))
+                        card_texture.blit(text, text.get_rect(center=(ctr.centerx,ctr.centery-2)))
+                    
                     else:
                         card_texture = BaseCard.base_sprite_back
                         
                     if card.lock:
                         card_texture = AssetLib.get_sprite('cards/lock')
-                        card_texture = palette_swap(card_texture,(255,255,255),(205,90,150))
+                        #card_texture = palette_swap(card_texture,(255,255,255),(205,90,150))
                 
                     card_surface.blit(card_texture,(x*30 + 10,y*40))
 
         # THE CURSOR.... IS CURSED!
-        ct_x = cursor_x*30 + 10
-        ct_y = cursor_y*40
-        
-        self.anim["cursor"][0] = lerp(self.anim["cursor"][0], ct_x, 0.2)
-        self.anim["cursor"][1] = lerp(self.anim["cursor"][1], ct_y, 0.2)
-        
-        if abs(self.anim["cursor"][0] - ct_x) < 0.1:
-            self.anim["cursor"][0] = ct_x
-        if abs(self.anim["cursor"][1] - ct_y) < 0.1:
-            self.anim["cursor"][1] = ct_y
+        if self.player.hand_cursor == -1:
+            ct_x = cursor_x*30 + 10
+            ct_y = cursor_y*40
+            
+            self.anim["cursor"][0] = lerp(self.anim["cursor"][0], ct_x, 0.2)
+            self.anim["cursor"][1] = lerp(self.anim["cursor"][1], ct_y, 0.2)
+            
+            if abs(self.anim["cursor"][0] - ct_x) < 0.1:
+                self.anim["cursor"][0] = ct_x
+            if abs(self.anim["cursor"][1] - ct_y) < 0.1:
+                self.anim["cursor"][1] = ct_y
 
-        cursor_moving = (self.anim["cursor"][0] != ct_x or 
-                        self.anim["cursor"][1] != ct_y)
+            cursor_moving = (self.anim["cursor"][0] != ct_x or 
+                            self.anim["cursor"][1] != ct_y)
 
-        draw_x = int(self.anim["cursor"][0])
-        draw_y = int(self.anim["cursor"][1])
+            draw_x = int(self.anim["cursor"][0])
+            draw_y = int(self.anim["cursor"][1])
 
-        if self.game_state['turn'] == "PLAYER":
-            if cursor_moving or int(self.delta_time * 4) % 2 == 0:
-                card_surface.blit(AssetLib.get_sprite('cards/select'), (draw_x, draw_y))
+            if self.game_state['turn'] == "PLAYER":
+                if cursor_moving or int(self.delta_time * 4) % 2 == 0:
+                    card_surface.blit(AssetLib.get_sprite('cards/select'), (draw_x, draw_y))
 
         screen.blit(card_surface,(10,10))
 
@@ -376,20 +453,67 @@ class GameSession(Scene):
             (-30 - pulse/2, -40 - pulse/2))
 
     def _draw_book(self,screen):
-        book = AssetLib.get_sprite("book") 
-        # text can start at x=20
-        book.blit(text_to_surface(f"{self.demons[0].name.upper():^30}","felipa-Regular",12),(30,5))
-        book.blit(text_to_surface("------------------------------------------","felipa-Regular",10),(20,15))
+        book = AssetLib.get_sprite("book").copy()
+        book.blit(text_to_surface("------------------------------------------","felipa-Regular",10),(20,15))            
+        # Helper card stuff
+        helper_surface = AssetLib.get_cache("helper_blank")
+        if helper_surface is None:
+            helper_surface = pygame.Surface((120,18),flags=pygame.SRCALPHA).convert_alpha()
+            for index in range(self.player.hand_limit):
+                helper_surface.blit(AssetLib.get_sprite('helpers/helper_blank'),(1+index*16 + index,1))
+            AssetLib.add_to_cache("helper_blank",helper_surface)
+        else:
+            helper_surface = AssetLib.get_cache("helper_blank").copy()
+            
+        for index,value in enumerate(self.player.hand):
+            helper_surface.blit(AssetLib.get_sprite(f'helpers/{value.name}'),(1+index*16 + index,1))
+        
+        # THE CURSOR.... IS CURSED!
+        cursor_x = self.player.hand_cursor
+        if cursor_x != -1 or self.pending_helper is not None:
+            if self.pending_helper is not None:
+                cursor_x = self.anim['hand_cursor_index']
+            ct_x = cursor_x*16 + cursor_x
+            
+            self.anim['hand_cursor'] = lerp(self.anim['hand_cursor'], ct_x, 0.2)
+            
+            if abs(self.anim['hand_cursor'] - ct_x) < 0.1:
+                self.anim['hand_cursor'] = ct_x
+
+            cursor_moving = (self.anim['hand_cursor'] != ct_x)
+
+            draw_x = int(self.anim['hand_cursor'])
+
+            if self.game_state['turn'] == "PLAYER":
+                if cursor_moving or int(self.delta_time * 4) % 2 == 0:
+                    helper_surface.blit(AssetLib.get_sprite('helpers/helper_cursor'), (draw_x, 0))
+        # Name/Header
+        if self.pending_helper is not None:
+            cursor_x = self.anim['hand_cursor_index']
+                
+        if cursor_x != -1:
+            book.blit(text_to_surface(f"{self.player.hand[int(cursor_x)].name.upper():^30}","felipa-Regular",12),(30,5))
+        else:
+            book.blit(text_to_surface(f"{self.demon.name.upper():^30}","felipa-Regular",12),(30,5))
+        
+        # Description
         # OK! the text can start at most x=20,y=20!
-        for index,value in enumerate(basic_text_wrap(self.demons[0].description,28)):
-            book.blit(text_to_surface(value,"Tiny5-Regular",10),(20,22 + (index*8)))
+        description = self.demon.description
+        if cursor_x != -1:
+            description = self.player.hand[cursor_x].description
+            
+        for index,value in enumerate(basic_text_wrap(description,40)):
+            book.blit(text_to_surface(value,"Tiny5-Regular",8),(20,22 + (index*8)))
+        
+        
+        book.blit(helper_surface,(25,50))
         
         # Let's add the scales.
-        scale_mid = AssetLib.get_sprite('scale_mid').convert_alpha()
+        scale_mid = AssetLib.get_sprite('scale_mid')
         scale_surface = pygame.Surface((100,100),flags=pygame.SRCALPHA).convert_alpha()
-        scale_surface.fill((155,0,155))
-        human_scale = AssetLib.get_sprite('plate').convert_alpha()
-        demon_scale = AssetLib.get_sprite('plate').convert_alpha()
+
+        human_scale = AssetLib.get_sprite('plate')
+        demon_scale = AssetLib.get_sprite('plate')
         
         delta = self.scale.get_delta_score()
         
@@ -418,7 +542,7 @@ class GameSession(Scene):
         scale_surface.blit(scale_mid,scale_mid.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height() // 2 + 10)))
         scale_surface.blit(delta_text,delta_text.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height()- 5)))
 
-        book.blit(scale_surface,(30,75))
+        book.blit(scale_surface,(35,75))
         screen.blit(book,(165,0))
 
         offset = get_live_value(0,5,5000,"breathe")
@@ -433,15 +557,19 @@ class GameSession(Scene):
         self._draw_grid(screen)
         self._draw_book(screen)
         
-        if self.scale.who_won() == "player":
-            screen.blit(text_to_surface("You Win!"),(100,60))   
-        elif self.scale.who_won() == "demon":
-            screen.blit(text_to_surface("You Lose!"),(100,60))
+        if self.scale.who_won() != None:
+            win_surf = None
+            if self.scale.who_won() == "player":
+                win_surf = text_to_surface("You Won!","Jacquard24-Regular",32,(255,255,255),2,(0,0,0))
+            elif self.scale.who_won() == "demon":
+                win_surf = text_to_surface("You Lose...","Jacquard24-Regular",32,(255,0,0),2,(0,0,0))
+            
+            win_rect = win_surf.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+            screen.blit(win_surf, win_rect)
         
         # ========= The part for fading lol ======== #
-        
+        dithers = [0,7,4,3,6,1,5,2]
         if not self.anim['fade_in_timer'].is_finished():
-            dithers = [0,7,4,3,6,1,5,2]
             p = self.anim['fade_in_timer'].get_p()
             index = min(int(p * len(dithers)), len(dithers) - 1)
             cf = dithers[index]
@@ -449,3 +577,13 @@ class GameSession(Scene):
                 screen.fill((0,0,0))
             else:
                 screen.blit(AssetLib.get_sprite(f"dither_screen{cf}"),(0,0))
+                
+        if self.change_scenes and self.anim['fade_out_timer'] is not None and self.anim['fade_out_timer'].is_finished():
+            screen.fill((0,0,0))
+        else:
+            if self.anim['fade_out_timer'] != None:
+                p = self.anim['fade_out_timer'].get_p()
+                index = min(int(p * len(dithers)), len(dithers) - 1)
+                cf = dithers[-index]
+                if cf != 0:
+                    screen.blit(AssetLib.get_sprite(f"dither_screen{cf}"),(0,0))

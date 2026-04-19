@@ -2,11 +2,12 @@ import pygame
 from GraphicHelper import *
 from .BaseScene import Scene
 from .GameSession import GameSession
+from .Games import Tutorial
+from .Dialogue import *
 from Objects import Timer
 
 class TitleScreen(Scene):
     def __init__(self):
-        super().__init__()
         self.cursor = 0
         self.change_scenes = False
         self.fade_in_timer = Timer(1000)
@@ -15,9 +16,10 @@ class TitleScreen(Scene):
     def update(self, dt):        
         if self.change_scenes:
             if self.fade_out_timer != None and self.fade_out_timer.is_finished():
-                return GameSession()
-
-        return super().update(dt)
+                #return Tutorial()
+                #return GameSession()
+                return Dialogue(Tutorial,INTRO_DIALOGUE,"Tiny5-Regular",10)
+        return None
 
     def handle_input(self, events):
         for event in events:
@@ -35,7 +37,7 @@ class TitleScreen(Scene):
                     nuke_csv("data/points_gained.csv", ["points_gained"])
                     nuke_csv("data/points_diff.csv", ["points_diff"])
                     print("############## CLEARED DATA! #############")
-                elif event.key == pygame.K_SPACE:
+                elif event.key == pygame.K_SPACE and self.fade_in_timer.is_finished():
                     match self.cursor:
                         case 0:
                             self.change_scenes = True
@@ -98,5 +100,3 @@ class TitleScreen(Scene):
             dithers.reverse()
             cf = dithers[index]
             screen.blit(AssetLib.get_sprite(f"dither_screen{cf}"),(0,0))
-
-        super().draw(screen)

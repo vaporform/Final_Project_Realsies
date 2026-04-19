@@ -33,11 +33,28 @@ class Player(BasePlayer):
         self.helper_cards = helper_cards
         self.picked_helper = False
         self.hand_limit = 4
+        self.hand_cursor = -1 #index ok??
+        
         super().__init__(deck,hand)
 
     def get_pos_in_grid(self,events,grid_size):
         for event in events:
-            if event.type == pygame.KEYDOWN:
+            if event.type != pygame.KEYDOWN:
+                continue
+            
+            max_hand_idx = len(self.hand) - 1
+            if self.hand_cursor >= 0: #Hand mode
+                if event.key == pygame.K_LEFT:
+                    self.hand_cursor -= 1
+                    if self.hand_cursor < 0:
+                        # leave hand mode back to grid
+                        self.hand_cursor = -1
+
+                elif event.key == pygame.K_RIGHT:
+                    if max_hand_idx >= 0:
+                        self.hand_cursor = min(self.hand_cursor + 1, max_hand_idx)
+
+            else: # Grid Mode
                 # DIR STUFF...
                 if event.key == pygame.K_UP and self.cursor_y != 0:
                     self.cursor_y -= 1
@@ -46,9 +63,13 @@ class Player(BasePlayer):
                 
                 if event.key == pygame.K_LEFT and self.cursor_x != 0:
                     self.cursor_x -= 1
-                elif event.key == pygame.K_RIGHT and self.cursor_x != grid_size-1:
-                    self.cursor_x += 1
-        pass
+                elif event.key == pygame.K_RIGHT:
+                    if self.cursor_x < grid_size - 1:
+                        self.cursor_x += 1
+                    else:
+                        # at right edge: enter hand mode if hand has cards
+                        if max_hand_idx >= 0:
+                            self.hand_cursor = 0
     
     def choose_helper(self):
         return random.choice(self.helper_cards)()
@@ -104,6 +125,21 @@ class Demon(BasePlayer):
     def choose_helper(self):
         return random.choice(self.hand)()
 
+class TutorialDemon(Demon):
+    def __init__(self,deck,hand):
+        super().__init__("Tutorial",
+                        "",deck,hand)
+        self.round = 0
+    
+    def decide(self,grid): # Method Overriding!
+        self.round += 1
+        if self.round > 2:
+            valid = grid.get_filtered_cards(lambda card: card.flipped == False and card.lock == False)
+            choice = min(valid, key=lambda c: c.value)
+            return "CARD", choice
+        else:
+            return "ACTION", self.choose_helper()        
+        
 class Imp(Demon):
     def __init__(self, deck, hand=[]):
         self.skill_used = False
@@ -151,9 +187,9 @@ class Fafnir(Demon):
         choice = max(valid, key=lambda c: c.value)
         return "CARD", choice
 
-class Zariel(Demon):
+class Baphomet(Demon):
     def __init__(self, deck, hand=[]):
-        super().__init__("Zariel", "Archduke Strategist", deck, hand)
+        super().__init__("Baphomet", "The King of Demons", deck, hand)
         
     def decide(self, grid: Grid):
         valid = grid.get_filtered_cards(lambda c: not c.flipped and not c.lock)
