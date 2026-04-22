@@ -1,8 +1,10 @@
 import pygame
 from GraphicHelper import *
 from .BaseScene import Scene
+
 from .GameSession import GameSession
 from .Games import Tutorial
+from .ChooseReward import Reward
 from .Dialogue import *
 from Objects import Timer
 
@@ -17,6 +19,7 @@ class TitleScreen(Scene):
         if self.change_scenes:
             if self.fade_out_timer != None and self.fade_out_timer.is_finished():
                 #return Tutorial()
+                #return Reward(GameSession())
                 #return GameSession()
                 return Dialogue(Tutorial,INTRO_DIALOGUE,"Tiny5-Regular",10)
         return None

@@ -226,6 +226,12 @@ class Scale:
                             self.demon_score += individual_card.value
                             self.demon_scored += individual_card.value
 
+    def __add__(self,value):
+        self.player_score += value
+    
+    def __sub__(self,value):
+        self.demon_score += value
+
 class Timer:
     def __init__(self, duration):
         self.duration = duration

@@ -211,6 +211,7 @@ class Application:
         
         # Get available demons
         self.demons = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))]
+        
         self.current_demon = self.demons[0] if self.demons else None
 
         # Top: Demon selector

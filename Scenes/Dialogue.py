@@ -95,33 +95,33 @@ class Dialogue(Scene):
 # I'm sorry bro :sob:
 # sesh 1: intro
 INTRO_DIALOGUE = [
-        {"text":"Dude, it actually worked! No more tutors, no more failing... With this power, those top grades are as easy as pie!","sprite":None,"color":(255,255,255)},
-        {"text":"Wait... why aren't you moving?! STOP! This isn't what I asked for!","sprite":"placeholder.png","color":(255,255,255)},
+        {"text":"Dude, it actually worked! No more tutors, no more failing... With this power, those top grades are as easy as pie!","sprite":"Summon_1","color":(255,255,255)},
+        {"text":"Wait... why aren't you moving?! STOP! This isn't what I asked for!","sprite":"Summon_2","color":(255,255,255)},
         {"text":"Quiet, mortal. He was merely the price of admission. It was all in the fine print... which you clearly didn't bother to read.","sprite":None,"color":(255,0,0)},
         {"text":"GIVE HIM BACK! I challenge you to a game. If I win, my friend goes FREE!","sprite":None,"color":(255,255,255)},
         {"text":"A game? Very well... but we play by my rules. Survive my three servants first. Only then I'll reconsider your offering.","sprite":None,"color":(255,0,0)}
     ]
 
 STAGE_1 = [
-    {"text":"Hehehe... seems like my master got a new prey to toy with...!","sprite":None,"color":(255,0,210)},
-    {"text":"ACT I: The Lowly Imp","sprite":None,"color":(255,255,255)},
+    {"text":"Hehehe... seems like my master got a new prey to toy with...! I shall think my luck will serve me well.","sprite":None,"color":(255,0,210)},
+    {"text":"ACT I: The Lowly Imp","sprite":"portrait","color":(255,255,255)},
 ] 
 
 STAGE_2 = [
-    {"text":"You got some guts, mortal. But can you survive my scales?!","sprite":None,"color":(255,0,210)},
-    {"text":"ACT II: Scales and Stones ","sprite":None,"color":(255,255,255)},
+    {"text":"ROARRR! YOU'VE GOT SOME GUTS, MORTAL! BUT YOU CAN SURVIVE FAFNIR'S SHINY-GLISTERING SCALES?!","sprite":None,"color":(200,0,210)},
+    {"text":"ACT II: Scales and Stones ","sprite":"Fafnir","color":(255,255,255)},
 ]
 
 STAGE_3 = [
-    {"text":"","sprite":None,"color":(255,0,210)},
-    {"text":"ACT III: Hey Jude","sprite":None,"color":(255,255,255)},
+    {"text":"Seems like we've underestimated you... No worries, I'll make sure you're dead before you reach HIM...","sprite":None,"color":(255,0,210)},
+    {"text":"ACT III: Powerlong","sprite":"Abigor","color":(255,255,255)},
 ]
 
 STAGE_4 = [
     {"text":"Bravo, summoner! You've come so far... I applaud you! But it seems like this... is your end.","sprite":None,"color":(255,0,0)},
-    {"text":"ACT IV: Judgement Day","sprite":None,"color":(255,255,255)},
+    {"text":"ACT IV: Judgement Day","sprite":"Baphomet","color":(255,255,255)},
 ]
 
 STAGE_5 = [
-    {"text":"Bro! You're back! Let's get outta here!","sprite":None,"color":(255,255,255)},
+    {"text":"Bro! You're back! Let's get outta here!","sprite":"tunnel","color":(255,255,255)},
 ]

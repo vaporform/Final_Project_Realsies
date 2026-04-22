@@ -89,7 +89,6 @@ class GameSession(Scene):
             "human_token", "demon_token", "scale_mid", "plate"
         ])
         
-
     def demon_turn(self):
         choice_type, data = self.demon.decide(self.grid)
         match choice_type:
@@ -135,6 +134,8 @@ class GameSession(Scene):
         self.grid.set_tiles_from_coords(
             grid_coords,select_cards
         )
+
+        self.player.hand = []
 
     def exit(self):
         '''
@@ -217,12 +218,12 @@ class GameSession(Scene):
                 self.anim['card_flip_timer'] = Timer(self.anim['card_flip']*1000)
                 
                 if not self.player.picked_helper and len(self.player.hand) < self.player.hand_limit:
-                    print("Giving player...")
-                    self.player.hand.append(self.player.choose_helper())
+                    if self.grid.get_item(self.player.cursor_x,self.player.cursor_y).owner == "player":
+                        print("Giving player...")
+                        self.player.hand.append(self.player.choose_helper())
 
                 self.player.picked_helper = False
-
-            self.player.grid_move = False         
+                self.player.grid_move = False         
         return self
     
     def log_data(self):
@@ -325,6 +326,8 @@ class GameSession(Scene):
                 # Now, I think I'll cheat the card flip animation here.
                 if self.anim['card_flip_timer'] == None:
                     self.evaluate()
+                elif self.anim['card_flip_timer'].is_finished():
+                    self.anim['card_flip_timer'] = None
 
             case "HANG":
                 if self.anim['hang_timer'] is not None and self.anim['hang_timer'].is_finished():
@@ -349,7 +352,7 @@ class GameSession(Scene):
                 card = self.grid.grid[y][x]
                 card_texture = BaseCard.base_sprite_front
                 # Here, I'll draw the card flipping...
-                if self.data_to_evaluate is not None and card in self.data_to_evaluate["valid_cards"]:
+                if self.data_to_evaluate is not None and card in self.data_to_evaluate["valid_cards"] and self.anim[ 'card_flip_timer'] != None:
                     # it's freshly picked! Time to animate >:3
                     w,h = card_texture.get_size()
                 
@@ -381,9 +384,6 @@ class GameSession(Scene):
                     slot_y = y * 40
                     draw_x = slot_x + (w - scale_w) // 2
                     card_surface.blit(card_texture, (draw_x, slot_y))
-    
-                    if self.anim['card_flip_timer'].is_finished():
-                        self.anim['card_flip_timer'] = None
                 else:
                     # just do the ol' boring stuff...    
                     if card.flipped or "Peek" in card.effects:

@@ -151,13 +151,7 @@ class Imp(Demon):
         valid = grid.get_filtered_cards(lambda card: card.flipped == False and card.lock == False)
         choice = random.choice(valid)
         self.update_cursor_pos(grid.get_coords_from_object(choice))
-        # Type, data
-        if random.random() < 0.3 and not self.skill_used:
-            skill = self.choose_helper()
-            self.skill_used = True
-            return "ACTION", skill
 
-        self.skill_used = False
         return "CARD",choice
 
 class Abigor(Demon):
