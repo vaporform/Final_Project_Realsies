@@ -108,7 +108,7 @@ STAGE_1 = [
 ] 
 
 STAGE_2 = [
-    {"text":"ROARRR! YOU'VE GOT SOME GUTS, MORTAL! BUT YOU CAN SURVIVE FAFNIR'S SHINY-GLISTERING SCALES?!","sprite":None,"color":(200,0,210)},
+    {"text":"ROARRR! YOU'VE GOT SOME GUTS, MORTAL! BUT CAN YOU SURVIVE FAFNIR'S SHINY-GLISTERING SCALES?!","sprite":None,"color":(200,0,210)},
     {"text":"ACT II: Scales and Stones ","sprite":"Fafnir","color":(255,255,255)},
 ]
 

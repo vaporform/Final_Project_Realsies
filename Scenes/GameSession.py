@@ -505,7 +505,6 @@ class GameSession(Scene):
         for index,value in enumerate(basic_text_wrap(description,40)):
             book.blit(text_to_surface(value,"Tiny5-Regular",8),(20,22 + (index*8)))
         
-        
         book.blit(helper_surface,(25,50))
         
         # Let's add the scales.
@@ -542,9 +541,24 @@ class GameSession(Scene):
         scale_surface.blit(scale_mid,scale_mid.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height() // 2 + 10)))
         scale_surface.blit(delta_text,delta_text.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height()- 5)))
 
-        book.blit(scale_surface,(35,75))
-        screen.blit(book,(165,0))
+        book.blit(scale_surface,(35,65))
 
+
+        surface1 = pygame.Surface((40,30)).convert_alpha()
+        surface1.fill((255,255,255))
+        human_card_icon = AssetLib.get_sprite("card_icon")
+        demon_card_icon = palette_swap(AssetLib.get_sprite("card_icon"),(255,255,255),(255,0,0))
+
+        surface1.blit(palette_swap(demon_card_icon,(0,255,0),(255,255,255)),(0,0))
+        surface1.blit(text_to_surface(f"x{len(self.demon.deck)}"),(14,0))
+
+        surface1.blit(text_to_surface(f"x{len(self.player.deck)}"),(14,15))
+        surface1.blit(human_card_icon,(0,15))
+        
+
+        screen.blit(book,(165,0))
+        screen.blit(palette_swap(surface1,(0,255,0),(255,255,255)),(185,150))
+        
         offset = get_live_value(0,5,5000,"breathe")
         rv = AssetLib.get_sprite('right_vig')
         screen.blit(pygame.transform.scale(rv,(rv.get_size()[0]+offset,rv.get_size()[1]+offset)),(165-offset/2,0-offset/2))
@@ -556,7 +570,7 @@ class GameSession(Scene):
 
         self._draw_grid(screen)
         self._draw_book(screen)
-        
+
         if self.scale.who_won() != None:
             win_surf = None
             if self.scale.who_won() == "player":

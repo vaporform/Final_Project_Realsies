@@ -16,7 +16,9 @@ class Tutorial(GameSession):
             "Picking a card scores its value, tipping the scale. Tip it past the threshold to win.",
             "After you act, the demon takes their turn. Watch the scale.",
             "Try to complete a row, column or diagonal for bonus points. It refills with cards from your deck.",
+            "If you or demon drained all of their cards, it refills with bad cards...",
             "Move to the right to browse Helpers. Each have their own unique skills. Go back to cancel.",
+            "Helpers can ONLY get from WHITE (Yours!) cards",
             "Beat the tutorial."
         ]
         self.next_scene = Dialogue(Game1,STAGE_1,"Tiny5-Regular",10)

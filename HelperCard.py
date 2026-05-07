@@ -495,7 +495,7 @@ class Payback(HelperCard):
             if self.round >= 1:
                 # check the scales...
                 if game_state["scale"].get_delta_score() <= 0:
-                    game_state["scale"] += abs(get_delta_score()) * 2
+                    game_state["scale"] += abs(game_state["scale"].get_delta_score()) * 2
                     self.triggered = True
             self.round += 1
         pass

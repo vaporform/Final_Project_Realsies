@@ -9,7 +9,7 @@ class GameApp:
         '''
         pygame.init() # Inititalize the game!
         self.render_resolution = (320,180)
-
+         
         # The actual screen that the user will see.
         self.screen = pygame.display.set_mode(self.render_resolution, pygame.SCALED, vsync=1)
 
