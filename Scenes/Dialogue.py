@@ -2,7 +2,7 @@ from .BaseScene import Scene
 from .GameSession import GameSession
 
 from Objects import Timer
-from GraphicHelper import *
+from AssetHelper import *
 
 import pygame
 

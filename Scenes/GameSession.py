@@ -4,7 +4,7 @@ from BaseCard import *
 from HelperCard import *
 
 from Players import *
-from GraphicHelper import *
+from AssetHelper import *
 
 import random
 import pygame
@@ -174,7 +174,7 @@ class GameSession(Scene):
                     self.pending_helper = None
                 continue
             
-           # Now, below here will be accessible if the key is a space :P
+            # Now, below here will be accessible if the key is a space :P
             if event.key != pygame.K_SPACE:
                continue
             
@@ -223,7 +223,8 @@ class GameSession(Scene):
                         self.player.hand.append(self.player.choose_helper())
 
                 self.player.picked_helper = False
-                self.player.grid_move = False         
+                self.player.grid_move = False      
+                AssetLib.play_sfx('blipSelect.wav')   
         return self
     
     def log_data(self):
