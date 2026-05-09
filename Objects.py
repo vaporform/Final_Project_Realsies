@@ -1,4 +1,5 @@
 from BaseCard import BaseCard
+from AssetHelper import AssetLib
 import random
 import pygame
 
@@ -204,8 +205,6 @@ class Scale:
 
     def evaluate_points(self,raw_cards,player):
         # might be the stupidest way to do ts
-        self.player_scored = 0
-        self.demon_scored = 0
         for i in raw_cards:
             if isinstance(i,BaseCard):
                 if player.lower() == "player":
@@ -244,9 +243,6 @@ class Timer:
 
     def is_finished(self):
         return self.get_p() >= 1.0
-
-    def val(self, start, end, mode="linear"):
-        return get_live_value(start, end, self.duration, mode=mode, manual_t=self.get_p())
 
 if __name__ == "__main__":
     import pygame

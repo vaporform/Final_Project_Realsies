@@ -61,14 +61,19 @@ class AssetLib:
             except:
                 print("SOUND DNE!",key)
                 return None
-        return cls.fonts[f"{key}"]
+        return cls.sounds[key]
     
     @classmethod
     def play_sfx(cls, key, loop=False):
         # Like in the good ol' days, you can only do so much with the sound system... 
         if key == None or key == '': # assume we clear it up chat
             for i in cls.sounds:
-                i.stop()
+                asset = AssetLib.get_sound(i)
+                if asset:
+                    asset.stop()
+                else:
+                    break # there's nothing!
+            return
             
         asset = AssetLib.get_sound(key)
         if asset != None:

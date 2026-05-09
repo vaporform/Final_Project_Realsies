@@ -89,13 +89,6 @@ class Demon(BasePlayer):
         choice = random.choice(valid)
         # Type, data
         return "CARD",choice
-    
-    def update_cursor_pos(self, pos):
-        '''
-        YOU MUST UPDATE THIS BEFORE SENDING!
-        '''
-        self.cursor_x = pos[0]
-        self.cursor_y = pos[1]
 
     def get_line_stats(self, grid, card):
         '''
@@ -146,18 +139,34 @@ class Imp(Demon):
         self.skill_used = False
         super().__init__("Imp", "A low level demon. It does not have a care in the world.", deck, hand)
 
+    def choose_helper(self):
+        AssetLib.play_sfx('dash.wav')
+        return super().choose_helper()
+
     def decide(self,grid: Grid): # Method Overriding!
         # maybe decide?
         # get all grids that aren't flipped...
         valid = grid.get_filtered_cards(lambda card: card.flipped == False and card.lock == False)
         choice = random.choice(valid)
-        self.update_cursor_pos(grid.get_coords_from_object(choice))
+        self.cursor_x,self.cursor_y = grid.get_coords_from_object(choice)
+        
 
+        if random.random() > (1.0 - self.aggression):
+            skill = self.choose_helper()
+            self.aggression = 0
+            self.description = random.choice(["Sheesh, this is too easy! I'll pass.","Eh, whatever. It's your turn now.","What a waste of our boss' time! Your turn.","Jeez, I feel sorry for you! Hahaha! Puny human! I wonder what you'll do!"])
+            return "ACTION", skill
+        self.aggression += 0.1
+        self.description = "A low level demon. It does not have a care in the world."
+        
         return "CARD",choice
 
 class Abigor(Demon):
     def __init__(self,deck,hand=[]):
-        super().__init__("Abigor", "Commander of the 60 Legions. Grand duke of Hell.", deck, hand)
+        super().__init__("Abigor", "Commander of lower-demons. Likes to play it fair and square.", deck, hand)
+
+    def choose_helper(self):
+        pass
 
     def decide(self, grid: Grid):
         valid = grid.get_filtered_cards(lambda c: not c.flipped and not c.lock)
@@ -169,25 +178,69 @@ class Abigor(Demon):
                 if line["count"] == 3: score += 10 # Completion
                 if self.aggression > 0.5 and line["unflipped_count"] <= 2 and line["player_count"] > 0:
                     score -= 5 # Blocking
+                    self.aggression -= 0.1
             scored_moves.append((score, card))
-        
+            self.aggression += 0.1
         return "CARD", max(scored_moves, key=lambda x: x[0])[1]
 
 class Fafnir(Demon):
     def __init__(self,deck,hand=[]):
-        super().__init__("Fafnir", "Dragon that can smell value. It is blinded by numbers", deck, hand)
+        super().__init__("Fafnir", "Dragon that can smell value and worth. It is blinded by numbers.", deck, hand)
+
+    def choose_helper(self):
+        AssetLib.play_sfx('roar.wav')
+        return super().choose_helper()
 
     def decide(self, grid: Grid):
         valid = grid.get_filtered_cards(lambda c: not c.flipped and not c.lock)
         choice = max(valid, key=lambda c: c.value)
+        # Now, maybe some time, they might wanna randomize!
+        
+        self.cursor_x,self.cursor_y = grid.get_coords_from_object(choice)
+        
+        print(self.cursor_x,self.cursor_y)
+
+        if random.random() > (1.0 - self.aggression):
+            # trigger
+            skill = self.choose_helper()
+            self.aggression = 0
+            self.description = random.choice(["X MARKS THE SPOT! FAFNIR CAN SENSE IT! HUMAN GREEDY!", "FANIFIR HATES THIS CARD!", "FANIFIR HOLDS THIS CARD! NO PICKING!"])
+            return "ACTION", skill
+
+        self.description = "Dragon that can smell value and worth. It is blinded by numbers."
+        self.aggression += 0.1
         return "CARD", choice
 
 class Baphomet(Demon):
     def __init__(self, deck, hand=[]):
-        super().__init__("Baphomet", "The King of Demons", deck, hand)
-        
+        super().__init__("Baphomet", "The King of Demons. Has tricks up his sleeves.", deck, hand)
+    
+    def choose_helper(self):
+        AssetLib.play_sfx('baa.wav')
+        return super().choose_helper()
+
     def decide(self, grid: Grid):
         valid = grid.get_filtered_cards(lambda c: not c.flipped and not c.lock)
+        if random.random() > (1.0 - self.aggression): # play helpers!
+            skill = self.choose_helper()
+            self.aggression = 0
+            flavor_text = ''
+            match skill.name:
+                case "Lock":
+                    flavor_text = random.choice(['I shall abstain you from picking that card.',"I won't allow that to happen.","Less choices, hm?"])
+                case "Bounty":
+                    flavor_text = random.choice(['Greedy always stays ahead.',"I shall boost this card to my liking.","I can sense a strong card."])
+                case "Trap":
+                    flavor_text = random.choice(['This trap shall do nicely...',"Hmmm... I wonder will you pick that card?"])
+                case "Curse":
+                    flavor_text = random.choice(["Can you sense your impending doom, mortal?","Don't you feel a bit off?"])
+            self.description = flavor_text
+
+            self.cursor_x,self.cursor_y = grid.get_coords_from_object(random.choice(valid))
+            
+            return "ACTION", skill
+        # okay, we play it safe lmao
+        self.aggression += 0.05
         is_mining = len(self.deck) > 4
         scored_moves = []
 
@@ -206,4 +259,6 @@ class Baphomet(Demon):
 
             scored_moves.append((score + random.uniform(0, 5), card))
 
-        return "CARD", max(scored_moves, key=lambda x: x[0])[1]
+        choice = max(scored_moves, key=lambda x: x[0])[1]
+        self.description = "The King of Demons. Has tricks up his sleeves."
+        return "CARD", choice

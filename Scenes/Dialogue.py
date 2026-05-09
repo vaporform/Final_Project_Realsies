@@ -40,7 +40,9 @@ class Dialogue(Scene):
                     if self.fade_in_timer.is_finished():
                         if self.text_index >= len(self.dialogue)-1:
                             self.change_scenes = True
+                            
                         if self.fade_out_timer == None:
+                            AssetLib.play_sfx('hitHurt.wav')
                             self.fade_out_timer = Timer(1000)
                 
         return self

@@ -13,7 +13,7 @@ class GameApp:
         # The actual screen that the user will see.
         self.screen = pygame.display.set_mode(self.render_resolution, pygame.SCALED, vsync=1)
 
-        pygame.display.set_caption("Game")
+        pygame.display.set_caption("Game")  
         self.clock = pygame.time.Clock()
         self.running = True
         self.current_scene = None

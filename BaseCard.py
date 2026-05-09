@@ -1,5 +1,5 @@
 import pygame
-from GraphicHelper import *
+from AssetHelper import *
 # TEXTURE list
 
 class BaseCard:

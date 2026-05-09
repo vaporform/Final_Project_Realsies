@@ -27,7 +27,7 @@ class GameSession(Scene):
         normal_val = [1, 2, 3]
 
         self.player = Player(
-            deck=BaseCard.deck_creator([18, 4, 2], normal_val, "player"),
+            deck=BaseCard.deck_creator([18, 8, 4], normal_val, "player"),
             helper_cards=helpers,
             hand=[]
         )
@@ -36,25 +36,8 @@ class GameSession(Scene):
         self.player.hand_limit = 7
 
         self.demon = Imp(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"),[Lock])
-        '''
-        self.demons = [
-            #Demon("Imp", "An annoying low-level demon", BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
-            #Abigor(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
-            # Baphomet(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
-            #Zariel(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"))
-            Imp(BaseCard.deck_creator([16, 6, 2], normal_val, "demon"),[Lock])
-        ]
-        '''
         
         self.log_data_path = log_data_path
-        # STATES
-        self.game_state = {
-            "turn": "PLAYER",
-            "player": self.player,
-            "grid": self.grid,
-            "demon": self.demon,
-            "scale": self.scale
-        }
 
         self.data_to_evaluate = None
         '''
@@ -71,12 +54,15 @@ class GameSession(Scene):
         self.next_scene = next_scene
             
         self.anim = {
+            "floating_texts": [],
             "fade_in_timer": Timer(1000),
             "fade_out_timer":None,
             "cursor":[0,0],
             "hand_cursor":0,
             "card_flip": 0.5,
             "card_flip_timer":None,
+            "combo_clear_timer": None,
+            "spawn_cards_timer": None,
             "hang_timer": None
         }
 
@@ -92,7 +78,7 @@ class GameSession(Scene):
     def demon_turn(self):
         choice_type, data = self.demon.decide(self.grid)
         match choice_type:
-            case "CARD":
+            case "CARD": #if it's a card, we get the coords from cards.
                 x,y= self.grid.get_coords_from_object(data)
                 valid_cards, combos = self.grid.select_attempt(x,y)
                 if len(valid_cards) != 0 :
@@ -102,15 +88,17 @@ class GameSession(Scene):
                         "player": "demon"  # or "demon"
                     }
                     self.anim['card_flip_timer'] = Timer(self.anim['card_flip']*1000)
+                    AssetLib.play_sfx('blipSelect.wav')
             case "ACTION":
                 print(f"The demon uses {data}")
                 if data.verify(self.game_state):
                     # then it's OK
-                    #self.helpers_to_eval.append(data)
                     data.play(self.game_state)
                     self.helpers_to_eval.append(data)
                 else:
-                    print(" The demon passed it's turn.")
+                    if data.name != "Pass":
+                        self.demon.description = "The demon tried to use a skill, but it failed..."
+                    print(" The demon passed it's turn. (check failed!)")
         
         self.game_state['turn'] = 'EVALUATE'
 
@@ -120,6 +108,7 @@ class GameSession(Scene):
         Reset music, set player positions, etc.
         For loading assets or heavy stuff, it is advisable to load via __init__ instead.
         '''
+        AssetLib.play_sfx('')
         # Now, pick cards from it equally.
         amount = (self.grid.size**2)//2
         select_cards = self.player.choose_and_remove(amount) + self.demon.choose_and_remove(amount)
@@ -135,6 +124,15 @@ class GameSession(Scene):
             grid_coords,select_cards
         )
 
+              # STATES
+        self.game_state = {
+            "turn": "PLAYER",
+            "player": self.player,
+            "grid": self.grid,
+            "demon": self.demon,
+            "scale": self.scale
+        }
+        
         self.player.hand = []
 
     def exit(self):
@@ -161,11 +159,15 @@ class GameSession(Scene):
             if self.pending_helper is not None:
                 if event.key == pygame.K_SPACE:
                     if self.pending_helper.verify(self.game_state):
-                        log_to_csv(f"data/{self.log_data_path}/helper_cards.csv", [self.pending_helper.name, 1])
+                        if self.log_data_path != None:
+                            log_to_csv(f"data/{self.log_data_path}/helper_cards.csv", [self.pending_helper.name, 1])
                         self.pending_helper.play(self.game_state)
                         self.helpers_to_eval.append(self.pending_helper)
                         self.player.hand.remove(self.pending_helper)
                         self.player.picked_helper = True
+                        AssetLib.play_sfx('lockon_available.wav')
+                    else:
+                        AssetLib.play_sfx('error.wav')
 
                     self.pending_helper = None
                     continue
@@ -185,6 +187,7 @@ class GameSession(Scene):
                     self.anim['hand_cursor_index'] = self.player.hand_cursor
                     self.pending_helper = card
                     self.player.hand_cursor = -1   # return to main grid
+                    AssetLib.play_sfx('lockon_available.wav')
                     continue
                 
                 if card.verify(self.game_state):
@@ -200,6 +203,9 @@ class GameSession(Scene):
                         self.player.hand_cursor = len(self.player.hand) - 1
                     if len(self.player.hand) == 0:
                         self.player.hand_cursor = -1
+                    AssetLib.play_sfx('lockon_available.wav')
+                else:
+                    AssetLib.play_sfx('error.wav')
                 continue
             
             # Normal grid stuff
@@ -248,6 +254,12 @@ class GameSession(Scene):
         this evaluates the card that has picked AND run helper's commands :3c
         '''
         
+        self.game_state['data_to_evaluate'] = self.data_to_evaluate
+        
+        # Reset scale floating trackers manually before helpers/eval
+        self.scale.player_scored = 0
+        self.scale.demon_scored = 0
+
         # make the cards execute at the start of evaluation
         for i in self.helpers_to_eval:
             i.play_on_eval(self.game_state)
@@ -268,6 +280,21 @@ class GameSession(Scene):
         
         raw = self.data_to_evaluate
         self.scale.evaluate_points(raw['valid_cards'],raw["player"])
+        
+        # Spawn floating score texts
+        if self.scale.player_scored != 0:
+            self.anim['floating_texts'].append({
+                "text": f"{'+' if self.scale.player_scored > 0 else ''}{self.scale.player_scored}",
+                "timer": Timer(1500),
+                "side": "player"
+            })
+        if self.scale.demon_scored != 0:
+            self.anim['floating_texts'].append({
+                "text": f"{'+' if self.scale.demon_scored > 0 else ''}{self.scale.demon_scored}",
+                "timer": Timer(1500),
+                "side": "demon"
+            })
+
         target = self.demon # who cleared the grid?
         
         if raw["player"] == "player":
@@ -280,7 +307,11 @@ class GameSession(Scene):
             
         # if not win..
         if self.scale.who_won() == None:
-            if raw["player"] == "player":
+            if self.game_state.get('extra_turn'):
+                self.game_state['turn'] = self.game_state['extra_turn']
+                if raw["combos"] == 0:  # Only clear immediately if not going into combo animation
+                    self.game_state['extra_turn'] = None
+            elif raw["player"] == "player":
                 self.game_state['turn'] = 'DEMON'
             else:
                 self.game_state['turn'] = 'PLAYER'
@@ -289,12 +320,21 @@ class GameSession(Scene):
             # we are so done bro
             self.change_scenes = True
             if self.anim['hang_timer'] == None:
+                AssetLib.play_sfx('')
                 self.anim['hang_timer'] = Timer(5000)
+                if self.scale.who_won() == "player":
+                    AssetLib.play_sfx('victory.wav')
+                else:
+                    AssetLib.play_sfx('lose.wav')
             self.game_state['turn'] = 'HANG'
 
         # Now, CLEAN!
         if raw["combos"] > 0:
-            self.grid.replace_cards(Grid.flatten_list(raw['valid_cards'][1:]),target)
+            AssetLib.play_sfx('crunch_a.wav')
+            self.anim['combo_clear_timer'] = Timer(500)
+            self.game_state['turn'] = 'EVALUATE_COMBO'
+            self._target = target
+            return
 
         self.data_to_evaluate = None
 
@@ -329,6 +369,29 @@ class GameSession(Scene):
                     self.evaluate()
                 elif self.anim['card_flip_timer'].is_finished():
                     self.anim['card_flip_timer'] = None
+
+            case "EVALUATE_COMBO":
+                if self.anim['combo_clear_timer'] is not None and self.anim['combo_clear_timer'].is_finished():
+                    self.anim['combo_clear_timer'] = None
+                    raw_flattened = list(set(Grid.flatten_list(self.data_to_evaluate['valid_cards'][1:])))
+                    self._spawned_coords = self.grid.get_coords_from_tiles(raw_flattened)
+                    self.grid.replace_cards(raw_flattened, self._target)
+                    self.data_to_evaluate = None
+                    
+                    # Transition to spawning the new cards
+                    self.anim['spawn_cards_timer'] = Timer(500)
+                    self.game_state['turn'] = 'SPAWN_CARDS'
+            
+            case "SPAWN_CARDS":
+                if self.anim['spawn_cards_timer'] is not None and self.anim['spawn_cards_timer'].is_finished():
+                    self.anim['spawn_cards_timer'] = None
+                    self._spawned_coords = None
+                    # Resume to next turn
+                    if self.scale.who_won() != None:
+                        # ok someone just won, play ze music!
+                        self.game_state['turn'] = 'HANG'
+                    else:
+                        self.game_state['turn'] = 'DEMON' if self._target == self.player else 'PLAYER'
 
             case "HANG":
                 if self.anim['hang_timer'] is not None and self.anim['hang_timer'].is_finished():
@@ -385,6 +448,57 @@ class GameSession(Scene):
                     slot_y = y * 40
                     draw_x = slot_x + (w - scale_w) // 2
                     card_surface.blit(card_texture, (draw_x, slot_y))
+
+                elif self.game_state['turn'] == 'EVALUATE_COMBO' and self.data_to_evaluate is not None and card in Grid.flatten_list(self.data_to_evaluate['valid_cards'][1:]):
+                    # Animate Combo Clearing (shrinking/fading)
+                    prog = self.anim['combo_clear_timer'].get_p()
+                    w, h = card_texture.get_size()
+                    
+                    # Add pulse & shrink effect
+                    scale_h = max(1, int(h * (1 - prog)))
+                    scale_w = max(1, int(w * (1 - prog)))
+                    
+                    # Prepare final render text for full context as it shrinks
+                    card_texture = card_texture.copy()
+                    if "Peek" in card.effects:
+                        card_texture = palette_swap(card_texture,(255,255,255),(255,200,35))
+                    elif card.owner == "demon":
+                        card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))
+                    elif card.owner == "spooky":
+                        card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
+                    text = text_to_surface(str(card.value),'AlmendraSC-Regular',32)
+                    ctr = card_texture.get_rect()
+                    card_texture.blit(text, text.get_rect(center=(ctr.centerx,ctr.centery-2)))
+
+                    card_texture = pygame.transform.scale(card_texture, (scale_w, scale_h))
+                    
+                    # Center the shrinking card in its cell
+                    slot_x = x * 30 + 10
+                    slot_y = y * 40
+                    draw_x = slot_x + (w - scale_w) // 2
+                    draw_y = slot_y + (h - scale_h) // 2
+                    
+                    card_surface.blit(card_texture, (draw_x, draw_y))
+                    
+                elif self.game_state['turn'] == 'SPAWN_CARDS' and hasattr(self, '_spawned_coords') and self._spawned_coords is not None and (x, y) in self._spawned_coords:
+                    # Animate Card Spawning (growing outward from center)
+                    prog = self.anim['spawn_cards_timer'].get_p()
+                    w, h = BaseCard.base_sprite_back.get_size()
+                    
+                    # Grow effect
+                    scale_h = max(1, int(h * prog))
+                    scale_w = max(1, int(w * prog))
+                    
+                    card_texture = BaseCard.base_sprite_back.copy()
+                    card_texture = pygame.transform.scale(card_texture, (scale_w, scale_h))
+                    
+                    # Center the growing card in its cell
+                    slot_x = x * 30 + 10
+                    slot_y = y * 40
+                    draw_x = slot_x + (w - scale_w) // 2
+                    draw_y = slot_y + (h - scale_h) // 2
+                    
+                    card_surface.blit(card_texture, (draw_x, draw_y))
                 else:
                     # just do the ol' boring stuff...    
                     if card.flipped or "Peek" in card.effects:
@@ -395,7 +509,6 @@ class GameSession(Scene):
                             card_texture = palette_swap(card_texture,(255,255,255),(200,0,0))    
                         elif card.owner == "spooky":
                             card_texture = palette_swap(card_texture,(255,255,255),(200,0,155))
-                            
                         
                         text = text_to_surface(str(card.value),'AlmendraSC-Regular',32)
                         ctr = card_texture.get_rect()
@@ -503,7 +616,7 @@ class GameSession(Scene):
         if cursor_x != -1:
             description = self.player.hand[cursor_x].description
             
-        for index,value in enumerate(basic_text_wrap(description,40)):
+        for index,value in enumerate(basic_text_wrap(description,36)):
             book.blit(text_to_surface(value,"Tiny5-Regular",8),(20,22 + (index*8)))
         
         book.blit(helper_surface,(25,50))
@@ -542,11 +655,29 @@ class GameSession(Scene):
         scale_surface.blit(scale_mid,scale_mid.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height() // 2 + 10)))
         scale_surface.blit(delta_text,delta_text.get_rect(center=(scale_surface.get_width() // 2, scale_surface.get_height()- 5)))
 
+        # Draw floating texts
+        for ft in self.anim['floating_texts'][:]:
+            if ft['timer'].is_finished():
+                self.anim['floating_texts'].remove(ft)
+                continue
+            
+            elapsed = pygame.time.get_ticks() - ft['timer'].start_time
+            y_offset = -int(get_live_value(0, 10, ft['timer'].duration, "ease_out", elapsed))
+            
+            # create text surface
+            txt_surf = text_to_surface(ft['text'], "Tiny5-Regular", 12, (255, 255, 255), 1, (0, 0, 0))
+            
+            if ft['side'] == 'player':
+                target_pos = (human_scale_pos[0], human_scale_pos[1] + y_offset)
+            else:
+                target_pos = (demon_scale_pos[0], demon_scale_pos[1] + y_offset)
+                
+            scale_surface.blit(txt_surf, txt_surf.get_rect(center=target_pos))
+
         book.blit(scale_surface,(35,65))
-
-
-        surface1 = pygame.Surface((40,30)).convert_alpha()
-        surface1.fill((255,255,255))
+        screen.blit(book,(165,0))
+        
+        surface1 = pygame.Surface((40,40), flags=pygame.SRCALPHA).convert_alpha()
         human_card_icon = AssetLib.get_sprite("card_icon")
         demon_card_icon = palette_swap(AssetLib.get_sprite("card_icon"),(255,255,255),(255,0,0))
 
@@ -556,10 +687,10 @@ class GameSession(Scene):
         surface1.blit(text_to_surface(f"x{len(self.player.deck)}"),(14,15))
         surface1.blit(human_card_icon,(0,15))
         
+        swapped_s1 = palette_swap(surface1,(0,255,0),(255,255,255))
+        swapped_s1.set_colorkey((255,255,255))
+        screen.blit(swapped_s1,(185,150))
 
-        screen.blit(book,(165,0))
-        screen.blit(palette_swap(surface1,(0,255,0),(255,255,255)),(185,150))
-        
         offset = get_live_value(0,5,5000,"breathe")
         rv = AssetLib.get_sprite('right_vig')
         screen.blit(pygame.transform.scale(rv,(rv.get_size()[0]+offset,rv.get_size()[1]+offset)),(165-offset/2,0-offset/2))

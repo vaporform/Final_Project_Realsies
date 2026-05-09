@@ -13,11 +13,20 @@ class TitleScreen(Scene):
         self.change_scenes = False
         self.fade_in_timer = Timer(1000)
         self.fade_out_timer = None
+        AssetLib.play_sfx('')
+        AssetLib.play_sfx('SeeDouble.wav',True)
+
+    def enter(self):
+        AssetLib.play_sfx('')
+        AssetLib.play_sfx('SeeDouble.wav',True)
 
     def update(self, dt):        
         if self.change_scenes:
+            AssetLib.play_sfx('')
             if self.fade_out_timer != None and self.fade_out_timer.is_finished():
+                AssetLib.play_sfx('HParanormal.wav',True)
                 return Dialogue(Tutorial,INTRO_DIALOGUE,"Tiny5-Regular",10)
+
         return None
 
     def handle_input(self, events):
@@ -25,8 +34,11 @@ class TitleScreen(Scene):
             if event.type == pygame.KEYDOWN and not self.change_scenes:
                 if event.key == pygame.K_UP and self.cursor != 0:
                     self.cursor -= 1
+                    AssetLib.play_sfx('click.wav')
                 elif event.key == pygame.K_DOWN and self.cursor != 2:
                     self.cursor += 1
+                    AssetLib.play_sfx('click.wav')
+
                 elif event.key == pygame.K_r and self.cursor == 1:
                     # reset data!
                     from TkStats import nuke_csv
@@ -36,7 +48,9 @@ class TitleScreen(Scene):
                     nuke_csv("data/points_gained.csv", ["points_gained"])
                     nuke_csv("data/points_diff.csv", ["points_diff"])
                     print("############## CLEARED DATA! #############")
+
                 elif event.key == pygame.K_SPACE and self.fade_in_timer.is_finished():
+                    AssetLib.play_sfx('hitHurt.wav')
                     match self.cursor:
                         case 0:
                             self.change_scenes = True
@@ -54,6 +68,7 @@ class TitleScreen(Scene):
         return self
 
     def draw(self, screen: pygame.Surface):
+        screen.blit(AssetLib.get_sprite('title_screen'), (0,0))
         bob_offset = get_live_value(-3,3,3000,"yoyo")
         title = text_to_surface("Devils' Gambit", "Jacquard24-Regular", 36,(0,0,0),1)
         wing = AssetLib.get_sprite('wings')
@@ -63,9 +78,9 @@ class TitleScreen(Scene):
         screen.blit(title, title.get_rect(center=(screen.get_width() // 2, 40 + bob_offset)))
 
         # Menu options
-        play = text_to_surface("Start Gambit", "AlmendraSC-Regular", 18)
-        stats = text_to_surface("Statistics", "AlmendraSC-Regular", 18)
-        get_out = text_to_surface("Quit", "AlmendraSC-Regular", 18)
+        play = text_to_surface("Start Gambit", "AlmendraSC-Regular", 18,outline_width=2)
+        stats = text_to_surface("Statistics", "AlmendraSC-Regular", 18,outline_width=2)
+        get_out = text_to_surface("Quit", "AlmendraSC-Regular", 18,outline_width=2)
         
         for index, value in enumerate((play, stats, get_out)):
             text_rect = value.get_rect(center=(screen.get_width() // 2, 100 + (index * 25)))
