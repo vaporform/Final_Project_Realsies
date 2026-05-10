@@ -82,6 +82,24 @@ The following classes are implemented in the project with their key roles and re
 
 - **BaseCard**: Represents a grid card. Stores value, owner, potential effects, and face-up/face-down state.
 - **HelperCard**: Base class for all helper cards. Contains methods to override by each subclass to execute its effect.
+  - **Pass_On**: Pass your turn to the opponent.
+  - **Peek**: Reveals selected tile of your choice.
+  - **Lock**: Makes the card impossible to pick from either sides.
+  - **TwoTime**: Let you choose cards twice, if you don't complete a combo.
+  - **Trap**: Drain card points from opponent if picked.
+  - **Blind**: Unflips a revealed tile.
+  - **Oracle**: Shows the position of the highest-value unflipped tile.
+  - **Inflate**: Doubles a chosen tile's value for a turn.
+  - **Deflate**: Halves a chosen tile's value for a turn.
+  - **Scramble**: Shuffles the values of all unflipped tiles randomly.
+  - **Curse**: The opponent's next tile pick scores negative instead of positive.
+  - **Bounty**: Adds 3 points to an unflipped tile.
+  - **Wall**: Permanently blocks a tile from being picked.
+  - **Payback**: If next turn your scale is negative, get double score of the difference.
+  - **Windfall**: Draw a random helper card immediately.
+  - **Fog**: Unflip all currently revealed tiles.
+  - **Bleed**: Opponent loses 1 point per turn for 3 rounds.
+  
 - **AssetLib**: Manages sprite,font,sound loading, caching, and asset management.
 
 - **GameApp**: The main loop of the game application.
