@@ -26,6 +26,10 @@ Players who enjoy games that are easy to jump into but offer a challenge for tho
   - Interactive analytics dashboard with multiple visualization types.
   - Data analysis tools showing player performance trends and helper card effectiveness.
 
+- **Screenshots:**
+![001](/screenshots/gameplay/Game1.png)
+![002](/screenshots/gameplay/Game2.png)
+![003](/screenshots/gameplay/Game3.png)
 ---
 
 ## 2. Concept
