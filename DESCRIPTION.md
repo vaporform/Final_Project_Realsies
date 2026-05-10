@@ -50,7 +50,7 @@ The theme is inspired by thriller movies where a protagonist performs an ancient
 
 ## 3. UML Class Diagram
 
-The UML Class Diagram is provided in [PDF format](./uml.pdf) showing:
+The UML Class Diagram is provided in [PDF format](./UML.pdf) showing:
 - Core game classes (GameApp, GameSession, Scene hierarchy)
 - Player-related classes (BasePlayer, Player, Demon, and demon subclasses)
 - Game object classes (Grid, Scale, BaseCard, HelperCard)
@@ -99,7 +99,7 @@ The following classes are implemented in the project with their key roles and re
   - **Windfall**: Draw a random helper card immediately.
   - **Fog**: Unflip all currently revealed tiles.
   - **Bleed**: Opponent loses 1 point per turn for 3 rounds.
-  
+
 - **AssetLib**: Manages sprite,font,sound loading, caching, and asset management.
 
 - **GameApp**: The main loop of the game application.
