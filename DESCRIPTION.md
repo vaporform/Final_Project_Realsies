@@ -120,7 +120,7 @@ The logging triggers at two distinct moments in the game:
 
 - Added diagonal combos for more varied choices
 - Removed the "choose your rewards" part, as it disrupts the gameplay flow and player can get softlocked in extreme cases.
-
+- Gave players more cards to start each round
 
 ---
 
