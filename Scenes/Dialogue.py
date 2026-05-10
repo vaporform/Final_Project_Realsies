@@ -11,7 +11,6 @@ class Dialogue(Scene):
     def __init__(self, ts:Scene,
                 dialogue_data=[{"text":"TEST","sprite":"placeholder.png","color":(255,255,255)}],
                 font='test', size='16'):
-        self.cursor = 0
         self.change_scenes = False
         self.key_allow_timer = Timer(2500)
         self.dialogue = dialogue_data
@@ -33,6 +32,9 @@ class Dialogue(Scene):
             
         return None
 
+    def exit(self):
+        AssetLib.play_sfx('')
+        
     def handle_input(self, events):
         for event in events:
             if event.type == pygame.KEYDOWN and not self.change_scenes:
@@ -125,5 +127,8 @@ STAGE_4 = [
 ]
 
 STAGE_5 = [
-    {"text":"Bro! You're back! Let's get outta here!","sprite":"tunnel","color":(255,255,255)},
+    {"text":"H-Hey! Are you okay man? I've finally defeated the boss!","sprite":"tunnel","color":(255,255,255)},
+    {"text":"Argh! You little-! COME BACK HERE! I, THE DEMON KING IS NOT DONE WITH YOU MORTALS YET!","sprite":"Baphomet","color":(255,0,0)},
+    {"text":"GAH! DUDE, RUN! LET'S GET OUTTA HERE!","sprite":"tunnel","color":(255,255,255)},
+    {"text":"NEVER DO SKETCHY RITUALS AGAIN MAN!","sprite":"tunnel","color":(255,255,255)},
 ]

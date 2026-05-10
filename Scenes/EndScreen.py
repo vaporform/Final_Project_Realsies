@@ -7,7 +7,6 @@ import pygame
 
 class End(Scene):
     def __init__(self):
-        self.cursor = 0
         self.change_scenes = False
         self.fade_in_timer = Timer(1000)
         self.key_allow_timer = Timer(5000)

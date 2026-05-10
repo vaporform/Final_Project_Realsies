@@ -3,7 +3,7 @@ from AssetHelper import *
 from .BaseScene import Scene
 
 from .GameSession import GameSession
-from .Games import Tutorial
+from .Games import Tutorial, Game4
 from .Dialogue import *
 from Objects import Timer
 
@@ -13,11 +13,9 @@ class TitleScreen(Scene):
         self.change_scenes = False
         self.fade_in_timer = Timer(1000)
         self.fade_out_timer = None
-        AssetLib.play_sfx('')
         AssetLib.play_sfx('SeeDouble.wav',True)
 
     def enter(self):
-        AssetLib.play_sfx('')
         AssetLib.play_sfx('SeeDouble.wav',True)
 
     def update(self, dt):        

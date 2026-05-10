@@ -151,31 +151,74 @@ class BoardControlView(tk.Frame):
         super().__init__(parent, bg="white")
         
         try:
-            df = pd.read_csv(csv_path)
+            self.df = pd.read_csv(csv_path)
+            if self.df.empty:
+                raise ValueError("Empty Data")
+                
+            # Create session IDs based on turn == 0
+            self.df['session'] = (self.df['turn'] == 0).cumsum()
+            self.sessions = ["All"] + self.df['session'].unique().tolist()
             
-            # Calculate percentages
-            df["total"] = df["player_cards"] + df["demon_cards"]
-            df["player_pct"] = (df["player_cards"] / df["total"] * 100).fillna(0)
-            df["demon_pct"] = (df["demon_cards"] / df["total"] * 100).fillna(0)
-            df["spooky_pct"] = 100 - df["player_pct"] - df["demon_pct"]
+            # Select 'All' session by default
+            self.session_var = tk.StringVar(value="All")
             
-            fig = Figure(figsize=(5, 4), dpi=100)
-            ax = fig.add_subplot(111)
+            # Top row selector
+            control_frame = tk.Frame(self, bg="white")
+            control_frame.pack(fill="x", padx=10, pady=5)
             
-            ax.bar(df["turn"], df["demon_pct"], label="Demon", color="red")
-            ax.bar(df["turn"], df["player_pct"], bottom=df["demon_pct"], label="Player", color=ACCENT)
-            ax.bar(df["turn"], df["spooky_pct"], 
-                   bottom=df["demon_pct"] + df["player_pct"], label="Spooky", color="purple")
+            tk.Label(control_frame, text="Session:", bg="white").pack(side="left")
+            session_menu = tk.OptionMenu(control_frame, self.session_var, *self.sessions, command=self.update_chart)
+            session_menu.pack(side="left", padx=10)
             
-            apply_chart_style(ax, "Board Control", "Turn", "Percentage (%)")
-            ax.set_ylim(0, 100)
-            ax.legend()
+            # Sub-frame for chart
+            self.chart_frame = tk.Frame(self, bg="white")
+            self.chart_frame.pack(fill="both", expand=True)
             
-            canvas = FigureCanvasTkAgg(fig, master=self)
-            canvas.get_tk_widget().pack(fill="both", expand=True)
-        except:
+            self.canvas = None
+            self.update_chart(self.session_var.get())
+            
+        except Exception as e:
             label = tk.Label(self, text="No data yet", bg="white", fg="gray")
             label.pack(pady=20)
+
+    def update_chart(self, session_id):
+        if self.canvas:
+            self.canvas.get_tk_widget().destroy()
+            
+        if session_id == "All":
+            df_sess = self.df.copy()
+            x_values = range(len(df_sess))
+            title = "Board Control (All Sessions)"
+            xlabel = "Total Turns Across All Sessions"
+        else:
+            session_id = int(session_id)
+            df_sess = self.df[self.df['session'] == session_id].copy()
+            x_values = df_sess["turn"]
+            title = f"Board Control (Session {session_id})"
+            xlabel = "Turn"
+        
+        # Calculate percentages
+        df_sess["total"] = df_sess["player_cards"] + df_sess["demon_cards"]
+        df_sess["player_pct"] = (df_sess["player_cards"] / df_sess["total"] * 100).fillna(0)
+        df_sess["demon_pct"] = (df_sess["demon_cards"] / df_sess["total"] * 100).fillna(0)
+        df_sess["spooky_pct"] = 100 - df_sess["player_pct"] - df_sess["demon_pct"]
+        
+        fig = Figure(figsize=(5, 4), dpi=100)
+        ax = fig.add_subplot(111)
+        
+        bar_width = 1.0 if session_id == "All" else 0.8
+        
+        ax.bar(x_values, df_sess["demon_pct"], label="Demon", color="red", width=bar_width)
+        ax.bar(x_values, df_sess["player_pct"], bottom=df_sess["demon_pct"], label="Player", color=ACCENT, width=bar_width)
+        ax.bar(x_values, df_sess["spooky_pct"], 
+               bottom=df_sess["demon_pct"] + df_sess["player_pct"], label="Spooky", color="purple", width=bar_width)
+        
+        apply_chart_style(ax, title, xlabel, "Percentage (%)")
+        ax.set_ylim(0, 100)
+        ax.legend()
+        
+        self.canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
+        self.canvas.get_tk_widget().pack(fill="both", expand=True)
 
 class BoardValueView(tk.Frame):
     def __init__(self, parent, csv_path):

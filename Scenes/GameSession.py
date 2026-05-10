@@ -21,7 +21,6 @@ class GameSession(Scene):
         self.countdown = 0
         self.delta_time = 0
         self.turn_count = 0
-        self.pending_helper = None
         
         # Players
         normal_val = [1, 2, 3]
@@ -47,7 +46,9 @@ class GameSession(Scene):
             player": "player"  # or "demon"
         }
         '''
+        
         self.helpers_to_eval = []
+        self.pending_helper = None
 
         # ANIMATION!
         self.change_scenes = False
@@ -108,7 +109,6 @@ class GameSession(Scene):
         Reset music, set player positions, etc.
         For loading assets or heavy stuff, it is advisable to load via __init__ instead.
         '''
-        AssetLib.play_sfx('')
         # Now, pick cards from it equally.
         amount = (self.grid.size**2)//2
         select_cards = self.player.choose_and_remove(amount) + self.demon.choose_and_remove(amount)
@@ -233,22 +233,6 @@ class GameSession(Scene):
                 AssetLib.play_sfx('blipSelect.wav')   
         return self
     
-    def log_data(self):
-        # LOG DATA...
-        # Board Control
-        # LOG: board control
-        flatten_grid = Grid.flatten_list(self.grid.grid)
-        player_count = len([c for c in flatten_grid if c.owner == "player"])
-        demon_count = len([c for c in flatten_grid if c.owner == "demon"])
-        log_to_csv(f"data/{self.log_data_path}/board_cards.csv", [self.turn_count, player_count, demon_count])
-        
-        # LOG: board value range
-        board_value = sum([c.value for c in flatten_grid])
-        log_to_csv(f"data/{self.log_data_path}/board_values.csv", [board_value])
-        log_to_csv(f"data/{self.log_data_path}/points_diff.csv", [self.scale.get_delta_score()])
-        
-        self.turn_count += 1
-    
     def evaluate(self):
         '''
         this evaluates the card that has picked AND run helper's commands :3c
@@ -300,10 +284,23 @@ class GameSession(Scene):
         if raw["player"] == "player":
             target = self.player
             if self.log_data_path != None:
-                log_to_csv(f"data/{self.log_data_path}/points_gained.csv",[self.scale.player_scored])
+                log_to_csv(f"data/{self.log_data_path}/points_gained.csv", [self.scale.player_scored])
 
         if self.log_data_path != None: 
-            self.log_data()
+            # LOG DATA...
+            # Board Control
+            # LOG: board control
+            flatten_grid = Grid.flatten_list(self.grid.grid)
+            player_count = len([c for c in flatten_grid if c.owner == "player"])
+            demon_count = len([c for c in flatten_grid if c.owner == "demon"])
+            log_to_csv(f"data/{self.log_data_path}/board_cards.csv", [self.turn_count, player_count, demon_count])
+            
+            # LOG: board value range
+            board_value = sum([c.value for c in flatten_grid])
+            log_to_csv(f"data/{self.log_data_path}/board_values.csv", [board_value])
+            log_to_csv(f"data/{self.log_data_path}/points_diff.csv", [self.scale.get_delta_score()])
+            
+            self.turn_count += 1
             
         # if not win..
         if self.scale.who_won() == None:

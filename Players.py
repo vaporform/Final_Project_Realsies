@@ -153,7 +153,10 @@ class Imp(Demon):
         if random.random() > (1.0 - self.aggression):
             skill = self.choose_helper()
             self.aggression = 0
-            self.description = random.choice(["Sheesh, this is too easy! I'll pass.","Eh, whatever. It's your turn now.","What a waste of our boss' time! Your turn.","Jeez, I feel sorry for you! Hahaha! Puny human! I wonder what you'll do!"])
+            self.description = random.choice(["IMP: Sheesh, this is too easy! I'll pass.",
+            "IMP: Eh, whatever. It's your turn now.",
+            "IMP: What a waste of our boss' time! Your turn.",
+            "IMP: Hmm... I wodner what you'll do, human!"])
             return "ACTION", skill
         self.aggression += 0.1
         self.description = "A low level demon. It does not have a care in the world."
@@ -162,7 +165,7 @@ class Imp(Demon):
 
 class Abigor(Demon):
     def __init__(self,deck,hand=[]):
-        super().__init__("Abigor", "Commander of lower-demons. Likes to play it fair and square.", deck, hand)
+        super().__init__("Abigor", "Commander of lower-demons. Likes to play it fair and square. He's too focused to speak.", deck, hand)
 
     def choose_helper(self):
         pass
@@ -203,7 +206,9 @@ class Fafnir(Demon):
             # trigger
             skill = self.choose_helper()
             self.aggression = 0
-            self.description = random.choice(["X MARKS THE SPOT! FAFNIR CAN SENSE IT! HUMAN GREEDY!", "FANIFIR HATES THIS CARD!", "FANIFIR HOLDS THIS CARD! NO PICKING!"])
+            self.description = random.choice(["FAFNIR: X MARKS THE SPOT! FAFNIR CAN GREATLY SENSE IT! HUMAN GREEDY!", 
+            "FAFNIR: FANIFIR OWNS THIS CARD!",
+            "FAFNIR: FANIFIR HOLDS THIS CARD! HUMAN NOT PICKING!"])
             return "ACTION", skill
 
         self.description = "Dragon that can smell value and worth. It is blinded by numbers."
@@ -226,13 +231,20 @@ class Baphomet(Demon):
             flavor_text = ''
             match skill.name:
                 case "Lock":
-                    flavor_text = random.choice(['I shall abstain you from picking that card.',"I won't allow that to happen.","Less choices, hm?"])
+                    flavor_text = random.choice(["BAPHOMET: I shall withold you from picking that card.",
+                    "BAPHOMET: I won't allow that to happen.",
+                    "BAPHOMET: Less choices, hm?"])
                 case "Bounty":
-                    flavor_text = random.choice(['Greedy always stays ahead.',"I shall boost this card to my liking.","I can sense a strong card."])
+                    flavor_text = random.choice([
+                        'BAPHOMET: Greedy always stays ahead.',
+                        "BAPHOMET: I shall boost this card to my liking.",
+                        "BAPHOMET: I can sense a strong card... Boosting."])
                 case "Trap":
-                    flavor_text = random.choice(['This trap shall do nicely...',"Hmmm... I wonder will you pick that card?"])
+                    flavor_text = random.choice(['BAPHOMET: This trap shall do nicely...',
+                    "BAPHOMET: Hmmm... I wonder will you pick that card?"])
                 case "Curse":
-                    flavor_text = random.choice(["Can you sense your impending doom, mortal?","Don't you feel a bit off?"])
+                    flavor_text = random.choice(["BAPHOMET: Can you sense your impending doom, mortal?",
+                    "BAPHOMET: Don't you feel a bit off, mortal?"])
             self.description = flavor_text
 
             self.cursor_x,self.cursor_y = grid.get_coords_from_object(random.choice(valid))
