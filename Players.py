@@ -136,7 +136,6 @@ class TutorialDemon(Demon):
         
 class Imp(Demon):
     def __init__(self, deck, hand=[]):
-        self.skill_used = False
         super().__init__("Imp", "A low level demon. It does not have a care in the world.", deck, hand)
 
     def choose_helper(self):
