@@ -37,7 +37,12 @@ pip install -r requirements.txt
 - pygame-ce==2.5.7
 - matplotlib==3.10.8
 - pandas==3.0.2
-
+- **NOTE:** YOU MUST USE PYTHON VERSION 3.14.0 OR HIGHER!
+### Dependencies Error
+If you found compatibility issues, you can replace the requirements.txt as
+- pygame-ce
+- matplotlib
+- pandas
 ---
 
 ## Running the Game
