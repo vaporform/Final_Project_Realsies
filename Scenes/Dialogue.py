@@ -1,8 +1,8 @@
 from .BaseScene import Scene
 from .GameSession import GameSession
 
-from Objects import Timer
-from AssetHelper import *
+from code.Objects import Timer
+from code.AssetHelper import *
 
 import pygame
 
@@ -112,7 +112,7 @@ STAGE_1 = [
 ] 
 
 STAGE_2 = [
-    {"text":"ROARRR! YOU'VE GOT SOME GUTS, MORTAL! BUT CAN YOU SURVIVE FAFNIR'S SHINY-GLISTERING SCALES?!","sprite":None,"color":(200,0,210)},
+    {"text":"ROARRR! YOU'VE GOT SOME GUTS, MORTAL! BUT CAN YOU SURVIVE FARINA'S SHINY-GLISTERING SCALES?!","sprite":None,"color":(200,0,210)},
     {"text":"ACT II: Scales and Stones ","sprite":"Fafnir","color":(255,255,255)},
 ]
 

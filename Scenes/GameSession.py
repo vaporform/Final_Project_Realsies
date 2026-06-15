@@ -1,10 +1,10 @@
 from .BaseScene import Scene
-from Objects import Grid, Scale, Timer
-from BaseCard import *
-from HelperCard import *
+from code.Objects import Grid, Scale, Timer
+from code.BaseCard import *
+from code.HelperCard import *
 
-from Players import *
-from AssetHelper import *
+from code.Players import *
+from code.AssetHelper import *
 
 import random
 import pygame

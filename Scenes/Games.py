@@ -1,11 +1,11 @@
 from .GameSession import GameSession
-from AssetHelper import AssetLib
+from code.AssetHelper import AssetLib
 from .Dialogue import *
 from .EndScreen import End
 
-from Players import *
-from HelperCard import *
-from BaseCard import BaseCard
+from code.Players import *
+from code.HelperCard import *
+from code.BaseCard import BaseCard
 
 class Tutorial(GameSession):
     def __init__(self):
@@ -63,7 +63,7 @@ class Game1(GameSession):
     
 class Game2(GameSession):
     def __init__(self):
-        super().__init__('Fafnir')
+        super().__init__('Farina')
         self.demon = Fafnir(BaseCard.deck_creator([10, 6, 3, 2], [1,2,3,4], "demon"),[Lock])
         self.next_scene = Dialogue(Game3,STAGE_3,"Tiny5-Regular",10)
     
@@ -86,7 +86,7 @@ class Game2(GameSession):
     
 class Game3(GameSession):
     def __init__(self):
-        super().__init__('Abigor')
+        super().__init__('Arzolcam')
         self.demon = Abigor(BaseCard.deck_creator([4,11,6,3], [-1,1,2,3], "demon"))
         self.next_scene = Dialogue(Game4,STAGE_4,"Tiny5-Regular",10)
 
@@ -109,7 +109,7 @@ class Game3(GameSession):
 
 class Game4(GameSession):
     def __init__(self):
-        super().__init__('Baphomet')
+        super().__init__('Devil')
         self.demon = Baphomet(BaseCard.deck_creator([18, 4, 3,2,1], [1,2,3,4,5], "demon"),[Lock,Bounty,Trap,Curse])
         self.next_scene = Dialogue(End,STAGE_5,"Tiny5-Regular",10)
         self.scale = Scale(30)

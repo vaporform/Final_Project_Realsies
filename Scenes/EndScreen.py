@@ -1,7 +1,7 @@
 from .BaseScene import Scene
 
-from Objects import Timer
-from AssetHelper import *
+from code.Objects import Timer
+from code.AssetHelper import *
 
 import pygame
 

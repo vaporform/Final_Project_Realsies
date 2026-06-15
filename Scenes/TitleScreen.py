@@ -1,11 +1,11 @@
 import pygame
-from AssetHelper import *
+from code.AssetHelper import *
 from .BaseScene import Scene
 
 from .GameSession import GameSession
 from .Games import Tutorial, Game4
 from .Dialogue import *
-from Objects import Timer
+from code.Objects import Timer
 
 class TitleScreen(Scene):
     def __init__(self):
@@ -76,9 +76,9 @@ class TitleScreen(Scene):
         screen.blit(title, title.get_rect(center=(screen.get_width() // 2, 40 + bob_offset)))
 
         # Menu options
-        play = text_to_surface("Start Gambit", "AlmendraSC-Regular", 18,outline_width=2)
-        stats = text_to_surface("Statistics", "AlmendraSC-Regular", 18,outline_width=2)
-        get_out = text_to_surface("Quit", "AlmendraSC-Regular", 18,outline_width=2)
+        play = text_to_surface("Start Gambit", "AlmendraSC-Regular", 22,outline_width=1)
+        stats = text_to_surface("Statistics", "AlmendraSC-Regular", 22,outline_width=1)
+        get_out = text_to_surface("Quit", "AlmendraSC-Regular", 22,outline_width=1)
         
         for index, value in enumerate((play, stats, get_out)):
             text_rect = value.get_rect(center=(screen.get_width() // 2, 100 + (index * 25)))
